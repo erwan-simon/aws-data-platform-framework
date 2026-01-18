@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Emr Serverless Custom Image Support",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "emr-serverless.amazonaws.com"
+      },
+      "Action": [
+        "ecr:BatchGetImage",
+        "ecr:DescribeImages",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Condition":{
+        "StringEquals":{
+          "aws:SourceArn": "${EMR_SERVERLESS_APPLICATION_ARN}"
+        }
+      }
+    }
+  ]
+}

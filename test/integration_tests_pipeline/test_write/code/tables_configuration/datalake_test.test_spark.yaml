@@ -1,0 +1,6 @@
+description: "This is a test table"
+schema:
+  name:
+    description: "This column contains the names"
+  address:
+    description: "This column contains the addresses"

@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "datalake_sdk"
+version = "5.7.11"
+description = ""
+authors = ["Erwan Simon <erwan.simon@revolve.team>"]
+
+[tool.poetry.dependencies]
+python = "~3.13"
+boto3 = "~1.42.17"
+click = "~8.3.1"
+awswrangler = "~3.14.0"
+tqdm = "~4.67.1"
+pyyaml = "~6.0.3"
+slack-sdk = "~3.39.0"
+strands-agents = { version = "^1.9.0", optional = true }
+strands-agents-tools = { version = "^0.2.8", optional = true }
+strands-agents-builder = { version = "^0.1.10", optional = true }
+
+
+[tool.poetry.extras]
+agent = ["strands-agents", "strands-agents-tools", "strands-agents-builder", "mcp"]
+
+[build-system]
+requires = ["poetry-core>=1.8.1"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+datalake_sdk = "datalake_sdk.main:command_line_main"
