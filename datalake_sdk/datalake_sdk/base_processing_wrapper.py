@@ -274,30 +274,65 @@ class BaseProcessingWrapper:
         else:
             message += f" as table version ID '{table_version_id}' triggered it."
         self.logger.info(message)
+        terminal_states = {"SUCCEEDED", "FAILED", "CANCELLED"}
+
+        def wait_for_query(query_execution_id):
+            while True:
+                resp = wr.athena.get_query_execution(
+                    query_execution_id,
+                    boto3_session=self.boto_session,
+                )
+                state = resp["Status"]["State"]
+                if state in terminal_states:
+                    return resp
+                self.logger.info("Sleeping waiting for query to finish...")
+                time.sleep(5)
         # not using read_sql_query query as it adds double quotes around table names in the SQL query string and it is not compatible with the VACUUM command
+        self.logger.info("Performing vacuum...")
         vacuum_query_id = wr.athena.start_query_execution(
             f"VACUUM {table_name}",
             database=long_database_name,
             workgroup=self.athena_workgroup_name,
-            boto3_session=self.boto_session)
-        optimize_query_id = wr.athena.start_query_execution(
-            f"OPTIMIZE {table_name} REWRITE DATA USING BIN_PACK",
-            database=long_database_name,
-            workgroup=self.athena_workgroup_name,
-            boto3_session=self.boto_session)
-        terminal_states = {"SUCCEEDED", "FAILED", "CANCELLED"}
+            boto3_session=self.boto_session,
+        )
 
+        vacuum_resp = wait_for_query(vacuum_query_id)
+
+        vacuum_state = vacuum_resp["Status"]["State"]
+        vacuum_reason = vacuum_resp["Status"].get("StateChangeReason", "No message found")
+
+        if vacuum_state != "SUCCEEDED":
+            raise RuntimeError(f"VACUUM failed: {vacuum_reason}")
+
+        # --- OPTIMIZE (boucle si MORE_RUNS_NEEDED) ---
+        self.logger.info("Performing optimize...")
         while True:
-            states = wr.athena.get_query_executions(
-                [vacuum_query_id, optimize_query_id],
-                boto3_session=self.boto_session
-            )["Status.State"]
+            optimize_query_id = wr.athena.start_query_execution(
+                f"OPTIMIZE {table_name} REWRITE DATA USING BIN_PACK",
+                database=long_database_name,
+                workgroup=self.athena_workgroup_name,
+                boto3_session=self.boto_session,
+            )
 
-            if states.isin(terminal_states).all():
+            optimize_resp = wait_for_query(optimize_query_id)
+
+            status = optimize_resp["Status"]
+            state = status["State"]
+            reason = status.get("StateChangeReason", "No error message found")
+
+            if state == "SUCCEEDED":
                 break
 
-            self.logger.info("Sleeping waiting for maintenance to finish...")
-            time.sleep(5)
-        assert (states == "SUCCEEDED").all(), f"Maintenance failed: {states.tolist()}"
+            if (
+                state == "FAILED"
+                and reason
+                and "ICEBERG_OPTIMIZE_MORE_RUNS_NEEDED" in reason
+            ):
+                self.logger.info(
+                    "OPTIMIZE failed with ICEBERG_OPTIMIZE_MORE_RUNS_NEEDED, retrying..."
+                )
+                continue
+
+            raise RuntimeError(f"OPTIMIZE failed: {reason}")
         self.logger.info(f"Performed maintenance for table {full_table_name}")
         return True
