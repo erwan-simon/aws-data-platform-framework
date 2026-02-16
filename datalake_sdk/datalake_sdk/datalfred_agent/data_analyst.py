@@ -5,6 +5,7 @@ from strands import tool, Agent
 from strands.types.tools import ToolContext
 from strands.session.file_session_manager import FileSessionManager
 from strands.handlers.callback_handler import PrintingCallbackHandler
+from strands.agent.conversation_manager import SlidingWindowConversationManager
 
 @tool
 def list_databases() -> dict:
@@ -101,6 +102,10 @@ def data_analyst_agent(user_prompt: str, tool_context: ToolContext):
     """
     if "DATA_ANALYST_AGENT" not in globals():
         global DATA_ANALYST_AGENT
+        conversation_manager = SlidingWindowConversationManager(
+            window_size=10,
+            should_truncate_results=True,
+        )
         DATA_ANALYST_AGENT = Agent(
             model=tool_context.agent.state.get("inference_profile_arn"),
             system_prompt=DATA_ANALYST_SYSTEM_PROMPT,
@@ -108,7 +113,8 @@ def data_analyst_agent(user_prompt: str, tool_context: ToolContext):
             if tool_context.agent.state.get("print_sub_agent_debug") else None,
             session_manager=FileSessionManager(
                 session_id=f"strands-data-analyst-session-{str(uuid.uuid1())}"),
-            tools=[list_databases, list_tables, query_athena])
+            tools=[list_databases, list_tables, query_athena],
+            conversation_manager=conversation_manager)
         DATA_ANALYST_AGENT.state.set("project_name", tool_context.agent.state.get("project_name"))
         DATA_ANALYST_AGENT.state.set("domain_name", tool_context.agent.state.get("domain_name"))
         DATA_ANALYST_AGENT.state.set("stage_name", tool_context.agent.state.get("stage_name"))

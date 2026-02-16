@@ -1,3 +1,4 @@
+from strands.agent.conversation_manager import SlidingWindowConversationManager
 from strands.handlers.callback_handler import PrintingCallbackHandler
 from strands.types.tools import ToolContext
 from strands import Agent, tool
@@ -30,12 +31,17 @@ def run_guy_agent(main_agent, user_prompt: str, aws_region_name: str, tool_conte
     """
     if "RUN_GUY_AGENT" not in globals():
         global RUN_GUY_AGENT
+        conversation_manager = SlidingWindowConversationManager(
+            window_size=10,
+            should_truncate_results=True,
+        )
         RUN_GUY_AGENT = Agent(
             model=tool_context.agent.state.get("inference_profile_arn"),
             system_prompt=RUN_GUY_SYSTEM_PROMPT.format(aws_region_name=aws_region_name),
             callback_handler=PrintingCallbackHandler()
             if tool_context.agent.state.get("print_sub_agent_debug") else None,
-            tools=[use_aws])
+            tools=[use_aws],
+            conversation_manager=conversation_manager)
     agent_response = RUN_GUY_AGENT(user_prompt)
     total_input_tokens = tool_context.agent.state.get("total_input_tokens") if tool_context.agent.state.get("total_input_tokens") else 0
     total_output_tokens = tool_context.agent.state.get("total_output_tokens") if tool_context.agent.state.get("total_output_tokens") else 0
