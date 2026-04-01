@@ -225,6 +225,9 @@ class BaseProcessingWrapper:
         long_database_name, table_name = \
             self.get_long_database_and_table_name(full_table_name)
         glue_client = self.boto_session.client("glue")
+        if not wr.catalog.does_table_exist(database=long_database_name, table=table_name):
+            self.logger.warning(f"Table {full_table_name} does not exist, not updating metadata")
+            return
         table_current_config = glue_client.get_table(
             DatabaseName=long_database_name, Name=table_name)["Table"]
         for key_to_remove in [

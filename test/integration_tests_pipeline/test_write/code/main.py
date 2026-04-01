@@ -95,6 +95,13 @@ def test_upsert(job: BaseProcessingWrapper,
         df["name"] == "Marcel"].shape[0] == 1
 
 
+def test_ingest_empty_dataset(job: BaseProcessingWrapper, database_name: str, table_prefix: str):
+    full_table_name = f"{database_name}.{table_prefix}_empty_df"
+    fake_data = create_fake_data(100)
+    job.ingest(full_table_name=full_table_name,
+               dataframe=convert_list_to_dataframe(job, []))
+
+
 def main(job: BaseProcessingWrapper):
     """
     The datalake sdk is the real entrypoint of the job,
@@ -110,6 +117,7 @@ def main(job: BaseProcessingWrapper):
     # test the installation of custom libraries
     pipeline_utils_main(job.logger)
     test_upsert(job, database_name, table_prefix)
+    test_ingest_empty_dataset(job, database_name, table_prefix)
     assert job.perform_table_maintenance(f"{database_name}.{table_prefix}_upsert", force_maintenance=True)
     return {
         f"{database_name}.{table_prefix}":

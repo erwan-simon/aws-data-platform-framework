@@ -18,6 +18,9 @@ module "integration_tests_pipeline" {
       "infra_config" : {},
       "input_tables" : [],
       "output_tables" : {
+        "datalake_test.test_native_empty_df" : {
+          "ingestion_mode" : "overwrite"
+        },
         "datalake_test.test_native" : {
           "ingestion_mode" : "overwrite"
         },
@@ -56,6 +59,9 @@ module "integration_tests_pipeline" {
       "infra_config" : {},
       "input_tables" : [],
       "output_tables" : {
+        "datalake_test.test_spark_empty_df" : {
+          "ingestion_mode" : "overwrite"
+        },
         "datalake_test.test_spark" : {
           "ingestion_mode" : "overwrite"
         },
