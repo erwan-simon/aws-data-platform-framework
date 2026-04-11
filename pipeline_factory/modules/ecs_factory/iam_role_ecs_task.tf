@@ -2,6 +2,9 @@ resource "aws_iam_role" "ecs_task" {
   name = "${local.environment_name}_${var.pipeline_name}_${var.task_name}"
 
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+  tags = {
+    "${var.domain_object.project_name}:jupyter_sandbox" = "allowed"
+  }
 }
 
 data "aws_iam_policy_document" "ecs_task_assume" {

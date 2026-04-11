@@ -6,6 +6,9 @@ resource "aws_ecr_repository" "main" {
   image_scanning_configuration {
     scan_on_push = true
   }
+  tags = {
+    "${var.domain_object.project_name}:jupyter_sandbox" = "allowed"
+  }
 }
 
 resource "aws_ecr_lifecycle_policy" "main" {
