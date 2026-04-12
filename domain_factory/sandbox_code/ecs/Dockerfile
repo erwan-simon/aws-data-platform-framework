@@ -2,7 +2,9 @@
 # hadolint ignore=DL3029
 FROM --platform=linux/amd64 python:3.13
 
-RUN pip3 install --no-cache-dir jupyter notebook poetry==2.1.4
+RUN pip3 install --no-cache-dir jupyter notebook poetry==2.1.4 papermill && \
+    apt-get update && apt-get install -y awscli curl && rm -rf /var/lib/apt/lists/*
+    
 WORKDIR /usr/app/src
 COPY sandbox.ipynb .
 ARG RELATIVE_CODE_PATH

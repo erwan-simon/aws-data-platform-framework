@@ -48,6 +48,28 @@ data "aws_iam_policy_document" "ecs_task" {
     coalesce(var.task_configuration["additional_permissions"],
     data.aws_iam_policy_document.dummy.json)
   ]
+  # compatibility with aws-serverless-notebook-platform run_notebook
+  # not using data source for bucket to prevent failure if the stack is not deployed in the account
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectTagging",
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+    resources = [
+      "arn:aws:s3:::${var.domain_object.project_name}-jupyter-sandbox-prod-notebooks",
+      "arn:aws:s3:::${var.domain_object.project_name}-jupyter-sandbox-prod-notebooks/*",
+    ]
+  }
+  statement {
+    actions = [
+      "s3:PutObject",
+    ]
+    resources = [
+      "arn:aws:s3:::${var.domain_object.project_name}-jupyter-sandbox-prod-notebooks/notebook_executions/*",
+    ]
+  }
   statement {
     actions = [
       "s3:GetObject",
