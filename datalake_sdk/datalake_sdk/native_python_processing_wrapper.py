@@ -140,6 +140,7 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
                 )
                 self.perform_table_maintenance(full_table_name, force_maintenance)
             self.record_upsert_keys(full_table_name)
+            self.record_producer_job(full_table_name)
         except wr.exceptions.EmptyDataFrame:
             self.logger.warning("Ingested empty dataframe")
             return

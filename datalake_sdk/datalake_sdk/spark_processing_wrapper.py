@@ -100,6 +100,7 @@ class SparkProcessingWrapper(BaseProcessingWrapper):
                 partition_keys_query_string,
             )
         self.record_upsert_keys(full_table_name)
+        self.record_producer_job(full_table_name)
 
     def read_input_dataset(
         self, input_file_path: str, csv_delimiter: str = ","

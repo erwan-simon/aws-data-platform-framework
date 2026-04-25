@@ -103,6 +103,45 @@ class BaseProcessingWrapper:
         return long_database_name, table_name
 
     UPSERT_KEYS_TABLE_PROPERTY = "datalake_sdk_upsert_keys"
+    PIPELINE_NAME_TABLE_PROPERTY = "datalake_sdk_pipeline_name"
+    TASK_NAME_TABLE_PROPERTY = "datalake_sdk_task_name"
+
+    def record_producer_job(self, full_table_name: str) -> None:
+        """
+        Record the pipeline/task that produced this table on the Glue
+        table properties. No-op when running outside of a pipeline (e.g.
+        ad-hoc CLI ingestion) or when the table does not exist yet.
+        """
+        if not self.pipeline_name or not self.task_name:
+            return
+        long_database_name, table_name = self.get_long_database_and_table_name(
+            full_table_name
+        )
+        glue_client = self.boto_session.client("glue")
+        try:
+            table_dict = glue_client.get_table(
+                DatabaseName=long_database_name, Name=table_name
+            )["Table"]
+        except glue_client.exceptions.EntityNotFoundException:
+            return
+        current_params = table_dict.get("Parameters", {})
+        new_params = {}
+        if current_params.get(self.PIPELINE_NAME_TABLE_PROPERTY) != self.pipeline_name:
+            new_params[self.PIPELINE_NAME_TABLE_PROPERTY] = self.pipeline_name
+        if current_params.get(self.TASK_NAME_TABLE_PROPERTY) != self.task_name:
+            new_params[self.TASK_NAME_TABLE_PROPERTY] = self.task_name
+        if not new_params:
+            return
+        wr.catalog.upsert_table_parameters(
+            database=long_database_name,
+            table=table_name,
+            boto3_session=self.boto_session,
+            parameters=new_params,
+        )
+        self.logger.info(
+            f"Recorded producer job '{self.pipeline_name}/{self.task_name}' "
+            f"on table {full_table_name}"
+        )
 
     def record_upsert_keys(self, full_table_name: str) -> None:
         """
