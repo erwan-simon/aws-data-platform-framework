@@ -148,17 +148,12 @@ def command_line_migrate_data(
             "--target-table-name can only be used together with --source-table-name."
         )
 
-    owner_role_arn = None
+    cli_owner_pipeline_name = None
+    cli_owner_task_name = None
     if owner_job:
         if owner_job.count("/") != 1:
             raise click.UsageError("--owner-job must be 'pipeline_name/task_name'.")
-        owner_pipeline_name, owner_task_name = owner_job.split("/")
-        account_id = ctx.obj.boto_session.client("sts").get_caller_identity()["Account"]
-        owner_role_name = (
-            f"{ctx.obj.project_name}_{ctx.obj.domain_name}_"
-            f"{ctx.obj.stage_name}_{owner_pipeline_name}_{owner_task_name}"
-        )
-        owner_role_arn = f"arn:aws:iam::{account_id}:role/{owner_role_name}"
+        cli_owner_pipeline_name, cli_owner_task_name = owner_job.split("/")
 
     os.environ["PROJECT_NAME"] = ctx.obj.project_name
     os.environ["DOMAIN_NAME"] = ctx.obj.domain_name
@@ -194,15 +189,50 @@ def command_line_migrate_data(
                 f"No tables found in source database '{source_long_database_name}'."
             )
 
-    if not owner_job:
-        logger.warning(
-            "No --owner-job provided: any newly created target table will be "
-            "owned by the current IAM principal in Lake Formation. The "
-            "pipeline/task that is supposed to own the table will not have "
-            "permissions on it and its next run may fail. Pass --owner-job "
-            "'pipeline_name/task_name' to grant Lake Formation 'super' "
-            "permissions to the corresponding job role."
+    from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
+
+    account_id = boto_session.client("sts").get_caller_identity()["Account"]
+
+    def _resolve_owner_role_arn(src_table: str) -> str | None:
+        pipeline = cli_owner_pipeline_name
+        task = cli_owner_task_name
+        if not pipeline or not task:
+            source_table = glue_client.get_table(
+                DatabaseName=source_long_database_name, Name=src_table
+            )["Table"]
+            params = source_table.get("Parameters", {})
+            pipeline = pipeline or params.get(
+                BaseProcessingWrapper.PIPELINE_NAME_TABLE_PROPERTY
+            )
+            task = task or params.get(BaseProcessingWrapper.TASK_NAME_TABLE_PROPERTY)
+        if not pipeline or not task:
+            return None
+        owner_role_name = (
+            f"{ctx.obj.project_name}_{ctx.obj.domain_name}_"
+            f"{ctx.obj.stage_name}_{pipeline}_{task}"
         )
+        return f"arn:aws:iam::{account_id}:role/{owner_role_name}"
+
+    table_owner_role_arns = {
+        src: _resolve_owner_role_arn(src) for src, _ in tables_to_copy
+    }
+    tables_without_owner = [
+        src for src, arn in table_owner_role_arns.items() if not arn
+    ]
+    if tables_without_owner:
+        logger.warning(
+            "No owner job could be resolved for the following table(s): "
+            f"{', '.join(tables_without_owner)}. They will be owned by the "
+            "current IAM principal in Lake Formation, and the pipeline/task "
+            "that is supposed to own them will not have permissions on them "
+            "(its next run may fail). Pass --owner-job 'pipeline_name/"
+            "task_name' or ensure the source table carries the "
+            f"'{BaseProcessingWrapper.PIPELINE_NAME_TABLE_PROPERTY}' / "
+            f"'{BaseProcessingWrapper.TASK_NAME_TABLE_PROPERTY}' properties."
+        )
+    for src, arn in table_owner_role_arns.items():
+        if arn:
+            logger.info(f"[{src}] resolved owner role: {arn}")
 
     tables_summary = ", ".join(
         f"{src}->{tgt}" if src != tgt else src for src, tgt in tables_to_copy
@@ -216,7 +246,6 @@ def command_line_migrate_data(
         abort=True,
     )
 
-    from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
     from datalake_sdk.native_python_processing_wrapper import (
         NativePythonProcessingWrapper,
     )
@@ -259,7 +288,9 @@ def command_line_migrate_data(
     workgroup = wrapper_instance.athena_workgroup_name
 
     lakeformation_client = (
-        boto_session.client("lakeformation") if owner_role_arn else None
+        boto_session.client("lakeformation")
+        if any(table_owner_role_arns.values())
+        else None
     )
 
     for src, tgt in tables_to_copy:
@@ -277,6 +308,7 @@ def command_line_migrate_data(
             full_target_table_name=full_target_table_name,
             chunk_size=chunk_size,
         )
+        owner_role_arn = table_owner_role_arns[src]
         if owner_role_arn:
             lakeformation_client.grant_permissions(
                 Principal={"DataLakePrincipalIdentifier": owner_role_arn},
