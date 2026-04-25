@@ -97,15 +97,16 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
             f"{self.project_name}-{self.domain_name}-"
             f"{self.stage_name}-data"
         ).replace("_", "-")
-        technical_bucket_name = str(
-            f"{self.project_name}-{self.domain_name}-"
-            f"{self.stage_name}-technical"
-        ).replace("_", "-")
+        technical_bucket_uri = (
+            self.boto_session.client("athena")
+            .get_work_group(WorkGroup=self.athena_workgroup_name)
+            ["WorkGroup"]["Configuration"]["ResultConfiguration"]["OutputLocation"]
+        )
         output_location = f"s3://{data_bucket_name}/" + \
             f"{short_database_name}/{table_name}"
         # https://github.com/aws/aws-sdk-pandas/issues/2502
-        ingestion_temp_path = "s3://" + technical_bucket_name + \
-            f"/{short_database_name}" + \
+        ingestion_temp_path = technical_bucket_uri + \
+            f"{short_database_name}" + \
             f"/{table_name}/{str(uuid.uuid4())}"
         try:
             partitioned_dfs = self._create_partitioned_dataframes(

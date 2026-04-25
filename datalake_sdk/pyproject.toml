@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datalake_sdk"
-version = "5.7.15"
+version = "5.7.18"
 description = ""
 authors = ["Erwan Simon <erwan.simon@revolve.team>"]
 
