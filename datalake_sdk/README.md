@@ -48,6 +48,7 @@ The Datalake SDK follows a modular architecture with the following key component
 │  CLI Entry Point (main.py)                                   │
 │  ├─ ingest                                                    │
 │  ├─ delete_table                                              │
+│  ├─ migrate_data                                              │
 │  ├─ update_foreign_linked_databases                          │
 │  └─ datalfred (optional, requires strands-agents)            │
 ├──────────────────────────────────────────────────────────────┤
@@ -278,6 +279,32 @@ This command:
 - Creates resource links for databases shared from other AWS accounts
 - Removes orphaned resource links pointing to deleted resources
 
+#### 4. Migrate Data Across Stages
+
+Copies the data of one or all tables from a source stage to the current target stage (e.g. `prod` → `dev`). The global `-s/--stage-name` is the **target** stage; the source is given via `--source-stage-name`.
+
+```bash
+datalake_sdk \
+  --project-name poc \
+  --domain-name newsroom \
+  --stage-name dev \
+  migrate_data \
+    --source-stage-name prod \
+    --database-name newsroom \
+    --source-table-name articles \
+    --owner-job tests/test_native_write
+```
+
+Options:
+- `--source-table-name` (optional): if omitted, every table of the source database is replicated to the target database with the same name.
+- `--target-table-name` (optional, only with `--source-table-name`): rename the target table.
+- `--upsert-keys` (optional, slash-separated): falls back to the `datalake_sdk_upsert_keys` Glue table property of the source table when omitted.
+- `--partition-keys` (optional, slash-separated): applied to every copied table.
+- `--chunk-size` (default `200_000`): rows per Athena read chunk.
+- `--owner-job pipeline_name/task_name` (optional): grants Lake Formation `ALL` permissions (with grant option) on each target table to the IAM role `{project}_{domain}_{target_stage}_{pipeline}_{task}`. When omitted, the SDK falls back to the `datalake_sdk_pipeline_name` / `datalake_sdk_task_name` properties of the source table; if those are missing, a warning is emitted (the migrating principal will be the LF owner and the original pipeline may lose access).
+
+Always asks for an interactive confirmation listing the tables to copy.
+
 ### B. Python Library Usage
 
 The SDK can be used programmatically in both native Python and Spark environments.
@@ -485,6 +512,15 @@ Tables are automatically created with the following Iceberg properties:
 - `commit.retry.min-wait-ms`: 120000 (2 minutes)
 - `commit.retry.max-wait-ms`: 600000 (10 minutes)
 
+### SDK-managed Glue Table Properties
+
+On every successful `ingest()` call, the SDK records the following properties on the Glue table:
+
+- `datalake_sdk_upsert_keys` — comma-separated upsert keys used (only for `upsert` ingestion mode). If a different value was previously stored, a warning is emitted and the property is overwritten with the current keys.
+- `datalake_sdk_pipeline_name` / `datalake_sdk_task_name` — the pipeline/task that produced the table, taken from the `PIPELINE_NAME` / `TASK_NAME` environment variables. Skipped for ad-hoc CLI ingestions where these are empty.
+
+These properties are also preserved when `perform_table_maintenance` runs, since `VACUUM` / `OPTIMIZE` rewrite the Glue entry. They are consumed by the `migrate_data` command to default `--upsert-keys` and `--owner-job`.
+
 ## VII. Project Structure
 
 ```
@@ -493,6 +529,7 @@ datalake_sdk/
 │   ├── main.py                # CLI entry point
 │   ├── ingestion.py           # Ingestion CLI command
 │   ├── delete_table.py        # Table deletion CLI command
+│   ├── migrate_data.py        # Cross-stage data migration CLI command
 │   ├── update_foreign_linked_databases.py  # Lake Formation sync
 │   ├── base_processing_wrapper.py          # Abstract base class
 │   ├── native_python_processing_wrapper.py # Pandas implementation
@@ -516,6 +553,7 @@ datalake_sdk/
 - **`main.py`**: CLI entry point using Click framework; registers all subcommands
 - **`ingestion.py`**: Implements the `ingest` CLI command with file reading and ingestion orchestration
 - **`delete_table.py`**: Implements table deletion with S3 object cleanup and Glue table removal
+- **`migrate_data.py`**: Implements cross-stage data migration with auto-resolution of upsert keys and owner IAM role from source table properties
 - **`update_foreign_linked_databases.py`**: Manages Lake Formation resource links for cross-account access
 
 ### B. Processing Wrappers

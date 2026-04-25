@@ -11,10 +11,11 @@
   * [A. CLI - Ingest Data](#a-cli---ingest-data)
   * [B. Programmatic - Ingest Data with Python](#b-programmatic---ingest-data-with-python)
   * [C. Delete a Table](#c-delete-a-table)
-  * [D. Query Data with Athena](#d-query-data-with-athena)
-  * [E. AI Agent - Datalfred](#e-ai-agent---datalfred)
-  * [F. Ingestion Modes](#f-ingestion-modes)
-  * [G. Local Task Execution](#g-local-task-execution)
+  * [D. Migrate Data Across Stages](#d-migrate-data-across-stages)
+  * [E. Query Data with Athena](#e-query-data-with-athena)
+  * [F. AI Agent - Datalfred](#f-ai-agent---datalfred)
+  * [G. Ingestion Modes](#g-ingestion-modes)
+  * [H. Local Task Execution](#h-local-task-execution)
 * [VI. Infrastructure](#vi-infrastructure)
   * [A. Domain Factory](#a-domain-factory)
   * [B. Pipeline Factory](#b-pipeline-factory)
@@ -297,7 +298,29 @@ datalake_sdk \
   --table-name my_table
 ```
 
-### D. Query Data with Athena
+### D. Migrate Data Across Stages
+
+Copy the data of one or all tables from a source stage to the current target stage (e.g. `prod` → `dev`):
+
+```bash
+datalake_sdk \
+  --project-name poc \
+  --domain-name newsroom \
+  --stage-name dev \
+  migrate_data \
+  --source-stage-name prod \
+  --database-name newsroom \
+  --source-table-name articles \
+  --owner-job tests/test_native_write
+```
+
+Behavior:
+- Reads the source via Athena in chunks and re-ingests through the SDK in `upsert` mode.
+- If `--source-table-name` is omitted, every table of the source database is replicated to the target database with the same name.
+- If `--upsert-keys` is omitted, falls back to the `datalake_sdk_upsert_keys` Glue table property of the source table.
+- If `--owner-job pipeline_name/task_name` is provided, Lake Formation `ALL` permissions (with grant option) are granted on each target table to the IAM role `{project}_{domain}_{target_stage}_{pipeline}_{task}`. If omitted, the SDK falls back to the `datalake_sdk_pipeline_name` / `datalake_sdk_task_name` properties of the source table to derive the role; otherwise a warning is emitted (the migrating principal becomes the LF owner and the original pipeline may lose access).
+
+### E. Query Data with Athena
 
 Use the AWS Athena console or CLI to query Iceberg tables:
 
@@ -305,7 +328,7 @@ Use the AWS Athena console or CLI to query Iceberg tables:
 SELECT * FROM dev_my_database.my_table WHERE column_3 = 'value';
 ```
 
-### E. AI Agent - Datalfred
+### F. AI Agent - Datalfred
 
 Interact with the data lake using natural language (requires `datalake-sdk[agent]`):
 
@@ -325,7 +348,7 @@ Datalfred can:
 
 For more information, see [datalake_sdk/README.md - Datalfred Agent](datalake_sdk/README.md#c-datalfred-agent).
 
-### F. Ingestion Modes
+### G. Ingestion Modes
 
 - **overwrite**: Replaces all existing table data
 - **append**: Adds new rows without modifying existing data (may create duplicates)
@@ -333,7 +356,7 @@ For more information, see [datalake_sdk/README.md - Datalfred Agent](datalake_sd
 
 For detailed explanations and examples, see [datalake_sdk/README.md - Ingestion Modes](datalake_sdk/README.md#viii-ingestion-modes).
 
-### G. Local Task Execution
+### H. Local Task Execution
 
 The platform allows you to execute task code in a local Dockerized environment that is **identical to the AWS task execution environment**. This is particularly useful for developing new tasks or debugging existing ones.
 
@@ -670,6 +693,13 @@ schema:
     description: "Full name of the customer"
 ```
 
+In addition, the SDK automatically writes a few Glue **table properties** on every successful ingestion:
+
+- `datalake_sdk_upsert_keys` — comma-separated upsert keys used (only for `upsert` mode). Updated at every write; a warning is emitted if the keys differ from the previously stored value.
+- `datalake_sdk_pipeline_name` / `datalake_sdk_task_name` — the pipeline/task that produced the table (skipped for ad-hoc CLI ingestions).
+
+These properties are consumed by `datalake_sdk migrate_data` to derive default upsert keys and the owner IAM role.
+
 ### D. Triggers
 
 **Schedule**: Cron-based execution
@@ -729,6 +759,8 @@ For complete documentation, see [datalake_sdk/README.md](datalake_sdk/README.md)
 - `spark_processing_wrapper.py`: Spark implementation
 - `ingestion.py`: CLI ingestion command
 - `delete_table.py`: CLI delete command
+- `migrate_data.py`: CLI command to copy data from one stage to another
+- `update_foreign_linked_databases.py`: CLI command to sync Glue resource links for cross-account databases
 - `datalfred_agent/`: AI agent modules
 
 **Dependencies** (from `pyproject.toml`):

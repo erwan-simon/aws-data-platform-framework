@@ -455,7 +455,7 @@ class BaseProcessingWrapper:
         if vacuum_state != "SUCCEEDED":
             raise RuntimeError(f"VACUUM failed: {vacuum_reason}")
 
-        # --- OPTIMIZE (boucle si MORE_RUNS_NEEDED) ---
+        # --- OPTIMIZE (loop if MORE_RUNS_NEEDED) ---
         self.logger.info("Performing optimize...")
         while True:
             optimize_query_id = wr.athena.start_query_execution(
