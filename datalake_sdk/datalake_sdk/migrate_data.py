@@ -117,6 +117,15 @@ def _copy_table(
     type=int,
     help="Number of rows per Athena read chunk",
 )
+@click.option(
+    "--owner-job",
+    required=False,
+    default=None,
+    help="Slash-separated 'pipeline_name/task_name' of the job that is supposed "
+    "to own the migrated table(s). Lake Formation 'super' permissions on each "
+    "target table will be granted to its IAM role "
+    "({project}_{domain}_{target_stage}_{pipeline}_{task}).",
+)
 def command_line_migrate_data(
     ctx,
     source_stage_name: str,
@@ -126,6 +135,7 @@ def command_line_migrate_data(
     upsert_keys: str,
     partition_keys: str,
     chunk_size: int,
+    owner_job: str,
 ):
     target_stage_name = ctx.obj.stage_name
     if source_stage_name == target_stage_name:
@@ -137,6 +147,18 @@ def command_line_migrate_data(
         raise click.UsageError(
             "--target-table-name can only be used together with --source-table-name."
         )
+
+    owner_role_arn = None
+    if owner_job:
+        if owner_job.count("/") != 1:
+            raise click.UsageError("--owner-job must be 'pipeline_name/task_name'.")
+        owner_pipeline_name, owner_task_name = owner_job.split("/")
+        account_id = ctx.obj.boto_session.client("sts").get_caller_identity()["Account"]
+        owner_role_name = (
+            f"{ctx.obj.project_name}_{ctx.obj.domain_name}_"
+            f"{ctx.obj.stage_name}_{owner_pipeline_name}_{owner_task_name}"
+        )
+        owner_role_arn = f"arn:aws:iam::{account_id}:role/{owner_role_name}"
 
     os.environ["PROJECT_NAME"] = ctx.obj.project_name
     os.environ["DOMAIN_NAME"] = ctx.obj.domain_name
@@ -171,6 +193,16 @@ def command_line_migrate_data(
             raise click.UsageError(
                 f"No tables found in source database '{source_long_database_name}'."
             )
+
+    if not owner_job:
+        logger.warning(
+            "No --owner-job provided: any newly created target table will be "
+            "owned by the current IAM principal in Lake Formation. The "
+            "pipeline/task that is supposed to own the table will not have "
+            "permissions on it and its next run may fail. Pass --owner-job "
+            "'pipeline_name/task_name' to grant Lake Formation 'super' "
+            "permissions to the corresponding job role."
+        )
 
     tables_summary = ", ".join(
         f"{src}->{tgt}" if src != tgt else src for src, tgt in tables_to_copy
@@ -226,6 +258,10 @@ def command_line_migrate_data(
     wrapper_instance = NativePythonProcessingWrapper(output_tables=output_tables)
     workgroup = wrapper_instance.athena_workgroup_name
 
+    lakeformation_client = (
+        boto_session.client("lakeformation") if owner_role_arn else None
+    )
+
     for src, tgt in tables_to_copy:
         full_target_table_name = f"{database_name}.{tgt}"
         logger.info(f"=== Copying {src} -> {tgt} ===")
@@ -241,4 +277,20 @@ def command_line_migrate_data(
             full_target_table_name=full_target_table_name,
             chunk_size=chunk_size,
         )
+        if owner_role_arn:
+            lakeformation_client.grant_permissions(
+                Principal={"DataLakePrincipalIdentifier": owner_role_arn},
+                Resource={
+                    "Table": {
+                        "DatabaseName": target_long_database_name,
+                        "Name": tgt,
+                    }
+                },
+                Permissions=["ALL"],
+                PermissionsWithGrantOption=["ALL"],
+            )
+            logger.info(
+                f"[{src}] granted Lake Formation ALL permissions on "
+                f"{target_long_database_name}.{tgt} to {owner_role_arn}"
+            )
     logger.info("Iceberg copy finished")
