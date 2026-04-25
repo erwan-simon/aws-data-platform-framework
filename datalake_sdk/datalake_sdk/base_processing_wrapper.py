@@ -400,11 +400,12 @@ class BaseProcessingWrapper:
         long_database_name, table_name = self.get_long_database_and_table_name(
             full_table_name
         )
-        table_version_id = int(
-            self.boto_session.client("glue").get_table(
-                DatabaseName=long_database_name, Name=table_name
-            )["Table"]["VersionId"]
-        )
+        glue_client = self.boto_session.client("glue")
+        table_before_maintenance = glue_client.get_table(
+            DatabaseName=long_database_name, Name=table_name
+        )["Table"]
+        table_version_id = int(table_before_maintenance["VersionId"])
+        parameters_before_maintenance = table_before_maintenance.get("Parameters", {})
         if (
             not force_maintenance
             and table_version_id != 0
@@ -484,5 +485,13 @@ class BaseProcessingWrapper:
                 continue
 
             raise RuntimeError(f"OPTIMIZE failed: {reason}")
+        # VACUUM/OPTIMIZE rewrites the Glue table entry and drops custom Parameters
+        if parameters_before_maintenance:
+            wr.catalog.upsert_table_parameters(
+                database=long_database_name,
+                table=table_name,
+                boto3_session=self.boto_session,
+                parameters=parameters_before_maintenance,
+            )
         self.logger.info(f"Performed maintenance for table {full_table_name}")
         return True

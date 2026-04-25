@@ -139,11 +139,8 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
                     temp_path=ingestion_temp_path + f"/{index}",
                 )
                 self.perform_table_maintenance(full_table_name, force_maintenance)
-            self.record_upsert_keys(full_table_name)
-            self.record_producer_job(full_table_name)
         except wr.exceptions.EmptyDataFrame:
             self.logger.warning("Ingested empty dataframe")
-            return
         except wr.exceptions.QueryFailed as error:
             if "ICEBERG_COMMIT_ERROR" not in str(error):
                 raise error
@@ -158,6 +155,10 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
                     "ingestion: " + str(error)
                 ) from error
             self.ingest(full_table_name, dataframe, recursive_counter + 1)
+        self.record_upsert_keys(full_table_name)
+        self.record_producer_job(full_table_name)
+        if not wr.catalog.does_table_exist(database=long_database_name, table=table_name):
+            return
         wr.catalog.upsert_table_parameters(
             database=long_database_name,
             table=table_name,
