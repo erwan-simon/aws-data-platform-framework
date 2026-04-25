@@ -157,11 +157,11 @@ def command_line_migrate_data(
     logger = ctx.obj.logger
     boto_session = ctx.obj.boto_session
 
+    glue_client = boto_session.client("glue")
     if source_table_name:
         target_table_name = target_table_name or source_table_name
         tables_to_copy = [(source_table_name, target_table_name)]
     else:
-        glue_client = boto_session.client("glue")
         tables_to_copy = []
         paginator = glue_client.get_paginator("get_tables")
         for response in paginator.paginate(DatabaseName=source_long_database_name):
@@ -184,18 +184,45 @@ def command_line_migrate_data(
         abort=True,
     )
 
+    from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
     from datalake_sdk.native_python_processing_wrapper import (
         NativePythonProcessingWrapper,
     )
 
+    cli_upsert_keys = upsert_keys.split("/") if upsert_keys else None
+    cli_partition_keys = partition_keys.split("/") if partition_keys else []
+
+    def _resolve_upsert_keys(src_table: str) -> list:
+        if cli_upsert_keys is not None:
+            return cli_upsert_keys
+        source_table = glue_client.get_table(
+            DatabaseName=source_long_database_name, Name=src_table
+        )["Table"]
+        stored = source_table.get("Parameters", {}).get(
+            BaseProcessingWrapper.UPSERT_KEYS_TABLE_PROPERTY
+        )
+        if not stored:
+            raise click.UsageError(
+                f"No --upsert-keys provided and source table "
+                f"{source_long_database_name}.{src_table} has no "
+                f"'{BaseProcessingWrapper.UPSERT_KEYS_TABLE_PROPERTY}' "
+                "table property to fall back on."
+            )
+        return stored.split(",")
+
     output_tables = {
         f"{database_name}.{tgt}": {
-            "upsert_keys": upsert_keys.split("/") if upsert_keys else [],
-            "partition_keys": partition_keys.split("/") if partition_keys else [],
+            "upsert_keys": _resolve_upsert_keys(src),
+            "partition_keys": cli_partition_keys,
             "ingestion_mode": "upsert",
         }
-        for _, tgt in tables_to_copy
+        for src, tgt in tables_to_copy
     }
+    for src, tgt in tables_to_copy:
+        logger.info(
+            f"[{src}] resolved upsert_keys: "
+            f"{output_tables[f'{database_name}.{tgt}']['upsert_keys']}"
+        )
     wrapper_instance = NativePythonProcessingWrapper(output_tables=output_tables)
     workgroup = wrapper_instance.athena_workgroup_name
 
