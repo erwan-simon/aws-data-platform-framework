@@ -40,6 +40,33 @@ def _check_schemas_match(
     )
 
 
+def _build_select_with_timestamp_cast(
+    glue_client, logger, database: str, table: str
+) -> str:
+    """Cast every ``timestamp`` column to ``timestamp(3)`` in the SELECT.
+
+    Iceberg stores timestamps as ``timestamp(6)`` but Athena's UNLOAD-to-Parquet
+    writer only supports millisecond precision and errors out on
+    ``timestamp(6)``. Casting to ``timestamp(3)`` works around it, at the cost
+    of any sub-millisecond precision.
+    """
+    schema = _get_table_schema(glue_client, database, table)
+    projections = []
+    casted = []
+    for name, type_ in schema:
+        if type_ == "timestamp":
+            projections.append(f'CAST("{name}" AS timestamp(3)) AS "{name}"')
+            casted.append(name)
+        else:
+            projections.append(f'"{name}"')
+    if casted:
+        logger.info(
+            f"[{table}] casting timestamp columns to timestamp(3) for UNLOAD: "
+            f"{', '.join(casted)}"
+        )
+    return f'SELECT {", ".join(projections)} FROM "{table}"'
+
+
 def _copy_table(
     wrapper_instance,
     logger,
@@ -73,8 +100,14 @@ def _copy_table(
         workgroup_output_location.rstrip("/")
         + f"/migrate_data/{source_table_name}/{uuid.uuid4()}"
     )
+    select_sql = _build_select_with_timestamp_cast(
+        glue_client=boto_session.client("glue"),
+        logger=logger,
+        database=source_long_database_name,
+        table=source_table_name,
+    )
     chunks = wr.athena.read_sql_query(
-        sql=f'SELECT * FROM "{source_table_name}"',
+        sql=select_sql,
         database=source_long_database_name,
         ctas_approach=False,
         unload_approach=True,
