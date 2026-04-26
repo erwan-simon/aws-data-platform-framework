@@ -5,6 +5,40 @@ import click
 import awswrangler as wr
 
 
+def _get_table_schema(glue_client, database: str, table: str) -> list[tuple[str, str]]:
+    table_def = glue_client.get_table(DatabaseName=database, Name=table)["Table"]
+    columns = table_def.get("StorageDescriptor", {}).get("Columns", [])
+    return [(c["Name"], c["Type"]) for c in columns]
+
+
+def _check_schemas_match(
+    glue_client,
+    logger,
+    source_database: str,
+    source_table: str,
+    target_database: str,
+    target_table: str,
+) -> None:
+    source_schema = _get_table_schema(glue_client, source_database, source_table)
+    target_schema = _get_table_schema(glue_client, target_database, target_table)
+    if source_schema == target_schema:
+        logger.info(f"[{source_table}] schema check OK ({len(source_schema)} columns)")
+        return
+    source_map = dict(source_schema)
+    target_map = dict(target_schema)
+    diffs = []
+    for name in sorted(set(source_map) | set(target_map)):
+        s = source_map.get(name)
+        t = target_map.get(name)
+        if s != t:
+            diffs.append(f"  - {name}: source={s!r} target={t!r}")
+    logger.warning(
+        f"[{source_table}] schema mismatch between "
+        f"{source_database}.{source_table} and {target_database}.{target_table}:\n"
+        + "\n".join(diffs)
+    )
+
+
 def _copy_table(
     wrapper_instance,
     logger,
@@ -53,6 +87,14 @@ def _copy_table(
         boto3_session=boto_session,
     ).iloc[0, 0]
     logger.info(f"[{source_table_name}] Source: {source_count}, Target: {target_count}")
+    _check_schemas_match(
+        glue_client=boto_session.client("glue"),
+        logger=logger,
+        source_database=source_long_database_name,
+        source_table=source_table_name,
+        target_database=target_long_database_name,
+        target_table=target_table_name,
+    )
     if source_count != target_count:
         logger.warning(
             f"[{source_table_name}] Row count mismatch between source "
