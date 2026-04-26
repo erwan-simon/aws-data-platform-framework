@@ -8,6 +8,7 @@ import boto3
 from datalake_sdk.ingestion import command_line_ingest
 from datalake_sdk.delete_table import command_line_delete_table
 from datalake_sdk.migrate_data import command_line_migrate_data
+from datalake_sdk.run_task import command_line_run_task
 from datalake_sdk.update_foreign_linked_databases import (
     command_line_update_foreign_linked_databases,
 )
@@ -32,6 +33,7 @@ def command_line_main(ctx, project_name: str, domain_name: str, stage_name: str)
 command_line_main.add_command(command_line_ingest, "ingest")
 command_line_main.add_command(command_line_delete_table, "delete_table")
 command_line_main.add_command(command_line_migrate_data, "migrate_data")
+command_line_main.add_command(command_line_run_task, "run_task")
 command_line_main.add_command(
     command_line_update_foreign_linked_databases, "update_foreign_linked_databases"
 )
