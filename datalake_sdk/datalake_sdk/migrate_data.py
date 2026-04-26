@@ -35,7 +35,7 @@ def _copy_table(
         sql=f'SELECT * FROM "{source_table_name}"',
         database=source_long_database_name,
         ctas_approach=False,
-        unload_approach=False,
+        unload_approach=True,
         chunksize=chunk_size,
         workgroup=workgroup,
         boto3_session=boto_session,
