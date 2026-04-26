@@ -1,5 +1,6 @@
 import math
 import os
+import uuid
 
 import click
 import awswrangler as wr
@@ -65,6 +66,13 @@ def _copy_table(
         f"{num_chunks} chunk(s) of {chunk_size}"
     )
 
+    workgroup_output_location = boto_session.client("athena").get_work_group(
+        WorkGroup=workgroup
+    )["WorkGroup"]["Configuration"]["ResultConfiguration"]["OutputLocation"]
+    unload_s3_output = (
+        workgroup_output_location.rstrip("/")
+        + f"/migrate_data/{source_table_name}/{uuid.uuid4()}"
+    )
     chunks = wr.athena.read_sql_query(
         sql=f'SELECT * FROM "{source_table_name}"',
         database=source_long_database_name,
@@ -72,6 +80,7 @@ def _copy_table(
         unload_approach=True,
         chunksize=chunk_size,
         workgroup=workgroup,
+        s3_output=unload_s3_output,
         boto3_session=boto_session,
     )
     for index, chunk in enumerate(chunks):
