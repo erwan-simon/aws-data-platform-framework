@@ -3,7 +3,7 @@
 *.swp
 plan.file
 __pycache__
-!.terraform.lock.hcl
+poetry.lock
 **.venv/
 **plan_*.file
 **.zip
@@ -11,8 +11,3 @@ __pycache__
 **/package_source/
 **.parquet
 .DS_Store
-temp_build/
-.mypy_cache/
-logs/
-**/datalfred_outputs/
-_integration_test/

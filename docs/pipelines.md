@@ -162,8 +162,7 @@ placeholder with the full task state JSON (resource ARN, parameters, retries, et
 ```
 
 You can use any Step Functions feature in the template (Parallel, Map, Choice, …) — see the
-multi-branch example in
-[`test/integration_tests_pipeline/orchestration_configuration.tftpl.json`](../test/integration_tests_pipeline/orchestration_configuration.tftpl.json).
+multi-branch example shipped in `cookiecutter_template/{{cookiecutter.domain_name}}/iac/integration_tests_pipeline/orchestration_configuration.tftpl.json`.
 
 ## Triggers
 

@@ -11,9 +11,10 @@ The framework consists of two Terraform modules that you compose:
 - [`pipeline_factory/`](../pipeline_factory) — provisioned **as many times as needed inside a
   domain**. Each invocation creates a Step Functions state machine and the tasks that go with it.
 
-You consume them either by cloning this repo (the `test/` folder is a working example) or by
-referencing them from a remote `git::` source pinned to a release tag — the latter is the
-production pattern described below.
+You consume them either by scaffolding a new project from
+[`cookiecutter_template/`](../cookiecutter_template) (which is the working example, and what CI
+deploys for integration tests) or by referencing them from a remote `git::` source pinned to a
+release tag — the latter is the production pattern described below.
 
 ## Prerequisites
 
@@ -42,8 +43,20 @@ The framework expects these resources to already exist in the target account:
 
 ## Building your deployment
 
-The repo's [`test/`](../test) folder is a complete reference implementation — clone it, copy the
-`.example` files, and `terraform apply` (see the [root README quickstart](../README.md#quickstart)).
+The repo's [`cookiecutter_template/`](../cookiecutter_template) is a complete reference
+implementation. The easiest way to use it is to invoke cookiecutter directly against the remote
+repo (no clone needed):
+
+```bash
+pip install cookiecutter
+cookiecutter https://github.com/erwan-simon/aws-data-platform-framework --directory cookiecutter_template
+```
+
+Then `cd <your_domain_name>/iac`, `terraform init -backend-config=backend.hcl`, and
+`terraform apply` (see the [root README quickstart](../README.md#quickstart) for the full flow).
+Cookiecutter generates `backend.hcl` from the `terraform_backend_bucket_name` /
+`terraform_backend_dynamodb_name` prompts, so you don't have to pass `-backend-config` flags
+manually.
 For your own deployment, the recommended pattern is to consume the modules as remote git
 sources, pinned to a release tag.
 

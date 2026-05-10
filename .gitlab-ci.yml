@@ -36,8 +36,10 @@ deploy_integration_tests:
     - mkdir -p ~/.aws
     - echo "${CI_JOB_JWT_V2}" > /tmp/web_identity_token
     - echo -e "[profile default]\nrole_arn=${GITLAB_ROLE_ARN}\nweb_identity_token_file=/tmp/web_identity_token" > ~/.aws/config
-    - cd test
-    - terraform init -backend-config="bucket=$TERRAFORM_BACKEND_BUCKET" -backend-config="dynamodb_table=$TERRAFORM_BACKEND_DYNAMODB"
+    - pip install cookiecutter
+    - bash scripts/generate_integration_test_project.sh
+    - cd _integration_test/datalake_test/iac
+    - terraform init -backend-config=backend.hcl
     - terraform workspace new $CI_COMMIT_BRANCH || terraform workspace select $CI_COMMIT_BRANCH
     - terraform apply --auto-approve
   needs:
@@ -52,7 +54,7 @@ run_integration_tests:
   script:
     - export step_function_arn="arn:aws:states:${AWS_DEFAULT_REGION}:${ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_datalake_test_${STAGE_NAME}_tests"
     - pip install boto3
-    - python test/utils/run_integration_tests.py ${step_function_arn}
+    - python scripts/run_integration_tests.py ${step_function_arn}
   needs:
     - init_ecr_token
     - deploy_integration_tests

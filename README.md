@@ -60,23 +60,24 @@ Formation. Athena provides SQL access on top.
 
 ## Quickstart
 
-The fastest way to see the framework in action is to deploy the example shipped under
-[`test/`](test). It provisions a complete domain plus a multi-task pipeline (Python, native SQL,
-Spark SQL) and runs an end-to-end integration test on it.
+The fastest way to see the framework in action is to scaffold a domain via
+[`cookiecutter_template/`](cookiecutter_template) — it provisions a complete domain plus a
+multi-task pipeline (Python, native SQL, Spark SQL) that doubles as the platform's own
+integration test fixture.
 
 Prerequisites: an AWS account, an existing S3 bucket and DynamoDB table for Terraform state,
 and a VPC tagged `Name = {project_name}_network_platform_prod`. Full prerequisites in
 [`docs/deploying.md`](docs/deploying.md).
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/erwan-simon/aws-data-platform-framework.git
-cd aws-data-platform-framework/test
+# 1. Install cookiecutter
+pip install cookiecutter
 
-# 2. Create your local config from the templates and edit the values
-cp backend.hcl.example          backend.hcl
-cp terraform.tfvars.example     terraform.tfvars
-$EDITOR backend.hcl terraform.tfvars
+# 2. Scaffold a project straight from the repo (interactive — it'll prompt for AWS account,
+#    project name, etc.). No need to clone first.
+cookiecutter https://github.com/erwan-simon/aws-data-platform-framework --directory cookiecutter_template
+cd <your_domain_name>/iac
+$EDITOR terraform.tfvars
 
 # 3. Deploy
 terraform init -backend-config=backend.hcl
@@ -84,8 +85,8 @@ terraform workspace new dev
 terraform apply
 
 # 4. Run the integration test pipeline end-to-end
-python utils/run_integration_tests.py \
-  "arn:aws:states:eu-west-1:${AWS_ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_datalake_test_dev_tests"
+python ../../scripts/run_integration_tests.py \
+  "arn:aws:states:eu-west-1:${AWS_ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_${DOMAIN_NAME}_dev_tests"
 ```
 
 To build your own deployment from scratch (consuming `domain_factory` and `pipeline_factory`
@@ -121,7 +122,8 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 ├── datalake_sdk/         Python SDK and CLI used at runtime by tasks (and by humans)
 ├── domain_factory/       Terraform module — per-domain foundation
 ├── pipeline_factory/     Terraform module — pipelines from tasks_configuration
-├── test/                 Real, deployable example with integration tests
+├── cookiecutter_template/ Scaffold for a new domain — also drives CI integration tests
+├── scripts/              CI helpers (cookiecutter wrapper, integration test driver)
 └── docs/                 In-depth guides (deployment, pipeline authoring)
 ```
 

@@ -1,0 +1,19 @@
+variables:
+  ACCOUNT_ID: {{cookiecutter.aws_account_id}}
+  PROJECT_NAME: {{cookiecutter.project_name}}
+  DOMAIN_NAME: {{cookiecutter.domain_name}}
+  STAGE_NAME: $CI_COMMIT_REF_SLUG
+
+
+include:
+  - project: 'erwan.simon/devops-platform-ci-templates'
+    ref: 'v1.5.0'
+    file:
+      - 'base.yml'
+      - 'terraform.yml'
+
+stages:
+  - init
+  - format
+  - security
+  - deploy
