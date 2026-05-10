@@ -479,7 +479,7 @@ The `domain_factory` Terraform module provisions foundational infrastructure for
 | `datalake_admin_principal_arns` | list(string) | IAM principals with full data access | `[]` |
 | `use_public_subnets` | bool | Use public vs. private subnets | `true` |
 | `database_description` | string | Description of the domain database | `""` |
-| `skip_emr_serverless_sandbox_creation` | bool | Skip EMR sandbox image creation | `true` |
+| `skip_emr_serverless_sandbox_creation` | bool | Skip EMR sandbox image creation. Must be `false` if any pipeline of this domain uses an `EMRServerless` task | `true` |
 | `failure_notification_receivers` | list(string) | Email addresses for failure alerts | Required |
 
 #### Outputs
@@ -529,7 +529,7 @@ tasks_configuration = {
   "task_name" : {
     "type" : "python" | "sql"
     "path" : "./relative/path/to/task/code"
-    "infra_type" : "ECS" | "EMRServerless"
+    "infra_type" : "ECS" | "EMRServerless"   # EMRServerless requires the domain to be deployed with skip_emr_serverless_sandbox_creation = false
     "infra_config" : {
       "cpu" : "512"        # ECS only: CPU units
       "memory" : "1024"    # ECS only: Memory in MB
@@ -899,7 +899,7 @@ module "domain" {
 
 20. **VPC Dependency**: The domain factory expects a VPC tagged with `Name: {project_name}_network_platform_prod` containing appropriately tagged subnets (`Tier: Public` or `Tier: Private`).
 
-21. **EMR Sandbox Creation**: By default, `skip_emr_serverless_sandbox_creation=true` to reduce deployment time. Set to `false` if large-scale Spark processing is required.
+21. **EMR Sandbox Creation**: By default, `skip_emr_serverless_sandbox_creation=true` to reduce deployment time. You **must** set it to `false` on the domain before deploying any pipeline that contains an `EMRServerless` task — pipelines build their EMR task images on top of the domain's EMR sandbox image, so without it the pipeline deployment will fail.
 
 22. **CodeArtifact Publishing**: The domain factory automatically builds and publishes the `datalake_sdk` to CodeArtifact during deployment. The version is extracted from `datalake_sdk/pyproject.toml`.
 
