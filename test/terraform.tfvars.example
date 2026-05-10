@@ -1,0 +1,8 @@
+project_name                   = "your_project"
+git_repository                 = "https://github.com/your-org/your-repo"
+failure_notification_receivers = "alerts@example.com"
+
+# Comma-separated IAM role names that will be granted Lake Formation admin
+# rights on the domain databases. The names are resolved to ARNs by the
+# data block in domain.tf — they must already exist in your AWS account.
+datalake_admin_principal_arns  = "YourAdminRoleName"
