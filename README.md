@@ -8,7 +8,14 @@ A unified framework to industrialize data ingestion, transformation, and pipelin
 AWS using Terraform — from infrastructure provisioning to runtime execution. Reusable, standalone,
 and ready to be dropped into a new AWS account.
 
-![Architecture overview](doc_resources/datalake.drawio.png)
+```mermaid
+flowchart LR
+    DF["<b>domain_factory</b><br/><br/>A production-ready<br/>data domain on AWS,<br/>in one Terraform call.<br/><br/><i>storage · permissions · alerting</i>"]
+    PF["<b>pipeline_factory</b><br/><br/>Your pipelines,<br/>declared as code.<br/>Deployed as Step Functions.<br/><br/><i>Docker images · per-job IAM · scheduling</i>"]
+    SDK["<b>datalake_sdk</b><br/><br/>Write your tasks.<br/>The framework handles<br/>the lake integration.<br/><br/><i>Native Python · PySpark · SQL</i>"]
+
+    DF --> PF --> SDK
+```
 
 ## What you get
 
@@ -115,8 +122,7 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 ├── domain_factory/       Terraform module — per-domain foundation
 ├── pipeline_factory/     Terraform module — pipelines from tasks_configuration
 ├── test/                 Real, deployable example with integration tests
-├── docs/                 In-depth guides (deployment, pipeline authoring)
-└── doc_resources/        Diagrams and other documentation assets
+└── docs/                 In-depth guides (deployment, pipeline authoring)
 ```
 
 ## Requirements
