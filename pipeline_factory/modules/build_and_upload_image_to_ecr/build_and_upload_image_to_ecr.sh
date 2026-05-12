@@ -22,19 +22,23 @@ package_datalake_sdk=${18}
 role_to_assume_arn=${19}
 
 cd ${dockerfile_path}
-rm -rf temp_build/${relative_code_path}
-mkdir -p temp_build/${relative_code_path}
-cp -rf $absolute_code_path/* temp_build/${relative_code_path} || (echo "Could not copy task code from $absolute_code_path/*" && exit 1)
+# Derive a build-context-safe subdir name from relative_code_path: keeps uniqueness across
+# parallel builds (each task has a distinct relative_code_path) but strips `..` / `/` that would
+# otherwise let the COPY in Dockerfile escape the Docker build context.
+build_subdir=$(printf '%s' "${relative_code_path}" | tr -c '[:alnum:]' '_' | tr -s '_')
+rm -rf temp_build/${build_subdir}
+mkdir -p temp_build/${build_subdir}
+cp -rf $absolute_code_path/* temp_build/${build_subdir} || (echo "Could not copy task code from $absolute_code_path/*" && exit 1)
 
 if [ "$package_datalake_sdk" = "true" ];
 then
     datalake_sdk_path="../../../datalake_sdk"
     rm -rf "${datalake_sdk_path}/.venv" "${datalake_sdk_path}/.mypy_cache/"
-    cp -rf "${datalake_sdk_path}" "temp_build/${relative_code_path}" || (echo "Could not copy datalake_sdk sdk code from ${datalake_sdk_path}" && exit 1)
+    cp -rf "${datalake_sdk_path}" "temp_build/${build_subdir}" || (echo "Could not copy datalake_sdk sdk code from ${datalake_sdk_path}" && exit 1)
 
-    if ! cd temp_build/${relative_code_path}/datalake_sdk;
+    if ! cd temp_build/${build_subdir}/datalake_sdk;
     then
-      echo "Did not find temp_build/${relative_code_path}/datalake_sdk directory"
+      echo "Did not find temp_build/${build_subdir}/datalake_sdk directory"
       exit 1
     fi
     cd -
@@ -47,15 +51,15 @@ then
     export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" $(aws sts assume-role --role-arn ${role_to_assume_arn} --role-session-name GitlabRunnerSession --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" --output text))
 fi
 
-if ! aws ecr get-login-password --region $aws_region_name | docker login -u AWS ${aws_account_id}.dkr.ecr.${aws_region_name}.amazonaws.com --password-stdin 2> temp_build/${relative_code_path}/login_error_message.txt;
+if ! aws ecr get-login-password --region $aws_region_name | docker login -u AWS ${aws_account_id}.dkr.ecr.${aws_region_name}.amazonaws.com --password-stdin 2> temp_build/${build_subdir}/login_error_message.txt;
 then
-  if grep -q "The specified item already exists in the keychain." temp_build/${relative_code_path}/login_error_message.txt
+  if grep -q "The specified item already exists in the keychain." temp_build/${build_subdir}/login_error_message.txt
   then
     # https://github.com/hashicorp/terraform-provider-helm/issues/989
     echo "Cannot login to ECR due to bug, trying to build and push image anyway"
   else
-    cat temp_build/${relative_code_path}/login_error_message.txt
-    echo "Cannot login to ECR for unmanaged reason ('$(cat temp_build/${relative_code_path}/login_error_message.txt)'), Exiting..."
+    cat temp_build/${build_subdir}/login_error_message.txt
+    echo "Cannot login to ECR for unmanaged reason ('$(cat temp_build/${build_subdir}/login_error_message.txt)'), Exiting..."
     exit 1;
   fi
 fi
@@ -75,7 +79,7 @@ if ! DOCKER_BUILDKIT=1 \
   docker buildx build . \
   -t ${aws_account_id}.dkr.ecr.${aws_region_name}.amazonaws.com/${ecr_name}:${target_image_tag} \
   --build-arg BASE_IMAGE_URI=${base_image_uri} \
-  --build-arg RELATIVE_CODE_PATH=./temp_build/${relative_code_path} \
+  --build-arg RELATIVE_CODE_PATH=./temp_build/${build_subdir} \
   --build-arg PROJECT_NAME=${project_name} \
   --build-arg DOMAIN_NAME=${domain_name} \
   --build-arg STAGE_NAME=${stage_name} \
@@ -101,4 +105,4 @@ then
   exit 1
 fi
 
-rm -rf temp_build/${relative_code_path}
+rm -rf temp_build/${build_subdir}
