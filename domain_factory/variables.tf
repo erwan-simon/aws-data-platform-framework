@@ -58,3 +58,13 @@ variable "enable_llm" {
   description = "Enable the LLM features of the framework: create Bedrock inference profiles for the domain and let the failsafe shutdown Lambda call datalfred to diagnose pipeline failures. When false, no inference profiles are created and pipeline failure Slack messages skip the LLM analysis."
   default     = true
 }
+
+variable "failure_investigation_model_size" {
+  type        = string
+  description = "Bedrock model size (small / medium / large) used by the failsafe shutdown Lambda when datalfred investigates a pipeline failure. Ignored when enable_llm = false."
+  default     = "medium"
+  validation {
+    condition     = contains(["small", "medium", "large"], var.failure_investigation_model_size)
+    error_message = "failure_investigation_model_size must be one of: small, medium, large."
+  }
+}

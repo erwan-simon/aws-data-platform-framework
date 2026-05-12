@@ -58,10 +58,11 @@ resource "aws_lambda_function" "failsafe_shutdown" {
 
   environment {
     variables = {
-      PROJECT_NAME = var.project_name
-      DOMAIN_NAME  = var.domain_name
-      STAGE_NAME   = var.stage_name
-      LLM_ENABLED  = tostring(var.enable_llm)
+      PROJECT_NAME                     = var.project_name
+      DOMAIN_NAME                      = var.domain_name
+      STAGE_NAME                       = var.stage_name
+      LLM_ENABLED                      = tostring(var.enable_llm)
+      FAILURE_INVESTIGATION_MODEL_SIZE = var.failure_investigation_model_size
     }
   }
 }

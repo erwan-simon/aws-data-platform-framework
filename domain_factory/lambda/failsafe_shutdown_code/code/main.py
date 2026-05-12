@@ -88,7 +88,7 @@ TRIAGE_DICT = {"aws.ecs": handle_ecs, "aws.emr-serverless": handle_emr_serverles
 def investigate_error_with_datalfred(
     logger, boto_session, project_name: str, domain_name: str, stage_name: str
 ):
-    model_size = "large"
+    model_size = os.environ["FAILURE_INVESTIGATION_MODEL_SIZE"]
     print_sub_agent_debug = True
     response = datalfred_main(
         logger,
