@@ -16,3 +16,4 @@ temp_build/
 logs/
 **/datalfred_outputs/
 _integration_test/
+!cookiecutter_template/{{cookiecutter.domain_name}}/CLAUDE.md
