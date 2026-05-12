@@ -303,6 +303,9 @@ datalake_sdk -p poc -d my_tests -s prd datalfred \
 provisioned by `domain_factory` (`{project}_{domain}_{stage}_{model_size}`). Token usage and
 estimated cost are printed at the end of each run.
 
+If the domain was deployed with `enable_llm = false`, no inference profiles exist for it and
+`datalfred` raises a clear error pointing back at the `domain_factory` flag.
+
 ## Reference pointers
 
 - CLI options for each command: see the `@click.option` definitions in

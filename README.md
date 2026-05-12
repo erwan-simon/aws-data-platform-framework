@@ -38,7 +38,9 @@ flowchart LR
 - **Local–prod parity.** Run any task locally in the exact same Docker image used in
   production, with a Jupyter notebook attached for iteration.
 - **Optional AI agent.** *Datalfred*, a Bedrock-backed agent, lets you query the lake, debug
-  pipelines, and trigger ingestions in natural language.
+  pipelines, and trigger ingestions in natural language. Disabled per-domain with
+  `enable_llm = false` on the `domain_factory` call — skips Bedrock inference profile creation
+  and stops the failsafe-shutdown Lambda from invoking Datalfred on pipeline failures.
 
 ## How it works
 

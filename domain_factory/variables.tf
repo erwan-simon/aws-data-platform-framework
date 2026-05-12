@@ -52,3 +52,9 @@ variable "failure_notification_receivers" {
   type        = list(string)
   description = "List of emails to which to send failure notifications"
 }
+
+variable "enable_llm" {
+  type        = bool
+  description = "Enable the LLM features of the framework: create Bedrock inference profiles for the domain and let the failsafe shutdown Lambda call datalfred to diagnose pipeline failures. When false, no inference profiles are created and pipeline failure Slack messages skip the LLM analysis."
+  default     = true
+}

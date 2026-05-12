@@ -1,4 +1,5 @@
 resource "aws_bedrock_inference_profile" "large" {
+  count       = var.enable_llm ? 1 : 0
   name        = "${local.environment_name}_large"
   description = "Bedrock inference profile for ${local.environment_name} using a large LLM"
 
@@ -8,6 +9,7 @@ resource "aws_bedrock_inference_profile" "large" {
 }
 
 resource "aws_bedrock_inference_profile" "medium" {
+  count       = var.enable_llm ? 1 : 0
   name        = "${local.environment_name}_medium"
   description = "Bedrock inference profile for ${local.environment_name} using a medium LLM"
 
@@ -17,6 +19,7 @@ resource "aws_bedrock_inference_profile" "medium" {
 }
 
 resource "aws_bedrock_inference_profile" "small" {
+  count       = var.enable_llm ? 1 : 0
   name        = "${local.environment_name}_small"
   description = "Bedrock inference profile for ${local.environment_name} using a small LLM"
 

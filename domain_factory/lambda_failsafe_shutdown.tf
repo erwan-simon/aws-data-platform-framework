@@ -61,6 +61,7 @@ resource "aws_lambda_function" "failsafe_shutdown" {
       PROJECT_NAME = var.project_name
       DOMAIN_NAME  = var.domain_name
       STAGE_NAME   = var.stage_name
+      LLM_ENABLED  = tostring(var.enable_llm)
     }
   }
 }

@@ -40,6 +40,8 @@ The framework expects these resources to already exist in the target account:
   registers locations as it deploys). Whoever runs `terraform apply` must already be a Lake
   Formation admin in the account, or the data-location registration step fails.
 - **Bedrock**, if you want the Datalfred agent. Model access must be granted in the region.
+  Set `enable_llm = false` on the `domain_factory` module to opt out: no inference profiles are
+  created and pipeline failures skip the Datalfred investigation in the failsafe-shutdown Lambda.
 
 ## Building your deployment
 
@@ -152,7 +154,7 @@ Per call, in your target AWS account:
 | **Querying**    | An Athena workgroup `{project}_{domain}_{stage}` writing results to the technical bucket                                                               |
 | **Networking**  | A security group for tasks; subnets are picked from the VPC by `Tier` tag                                                                              |
 | **Compute**     | An ECS cluster with a sandbox image; optionally an EMR Serverless application + sandbox image (see [EMR sandbox](#emr-sandbox-creation))               |
-| **AI**          | A Bedrock inference profile per model size (`small`, `medium`, `large`) for Datalfred                                                                  |
+| **AI**          | A Bedrock inference profile per model size (`small`, `medium`, `large`) for Datalfred (skipped when `enable_llm = false`)                              |
 | **Packaging**   | A private CodeArtifact repository, into which `datalake_sdk` is built and published                                                                    |
 | **Operations**  | A failsafe-shutdown Lambda that kills tasks running past a configured duration; an EMR Studio for interactive Spark dev                                |
 
