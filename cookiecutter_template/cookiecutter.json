@@ -14,6 +14,18 @@
 	"domain_factory_source": "git::https://github.com/erwan-simon/aws-data-platform-framework//domain_factory?ref={{cookiecutter.dataplatform_version}}",
 	"pipeline_factory_source": "git::https://github.com/erwan-simon/aws-data-platform-framework//pipeline_factory?ref={{cookiecutter.dataplatform_version}}",
 	"__prompts__": {
+		"dataplatform_version": "Framework Git ref the modules should be pinned to (e.g. v1.4.0)",
+		"aws_account_id": "AWS account ID (12 digits) — used in resource ARNs",
+		"project_name": "Project name — prefix for every AWS resource (lowercase, snake_case, e.g. 'name_of_your_company')",
+		"domain_name": "Data domain name — one self-contained business unit (consisting of S3, Glue DB, IAM). Lowercase, snake_case, e.g. 'sales'",
+		"git_repository": "Git repo URL of this domain — tagged on every AWS resource for traceability (can be empty)",
+		"pipeline_name": "Pipeline name — Step Functions state machine suffix (e.g. 'main', 'tests')",
+		"failure_notification_receivers": "Comma-separated emails for pipeline failure alerts (can be empty)",
+		"datalake_admin_principal_arns": "Comma-separated IAM role names to grant Lake Formation admin on the domain (resolved via aws_iam_role data source (must exist); can be empty)",
+		"aws_region": "AWS region (e.g. eu-west-1)",
+		"terraform_backend_bucket_name": "S3 bucket holding Terraform state (must already exist)",
+		"terraform_backend_dynamodb_name": "DynamoDB table for Terraform state locking (must already exist)",
+		"skip_emr_serverless_sandbox_creation": "Skip building the EMR Serverless sandbox image (slow). 'true' if you don't run Spark tasks",
 		"domain_factory_source": false,
 		"pipeline_factory_source": false
 	}
