@@ -54,6 +54,16 @@ pip install cookiecutter
 cookiecutter https://github.com/erwan-simon/aws-data-platform-framework --directory cookiecutter_template
 ```
 
+Any cookiecutter variable can be pre-filled with a positional `key=value` argument — handy for
+values you'd otherwise paste from the shell:
+
+```bash
+cookiecutter https://github.com/erwan-simon/aws-data-platform-framework \
+  --directory cookiecutter_template \
+  aws_account_id=$(aws sts get-caller-identity --query Account --output text) \
+  aws_region=$(aws configure get region)
+```
+
 Then `cd <your_domain_name>/iac`, `terraform init -backend-config=backend.hcl`, and
 `terraform apply` (see the [root README quickstart](../README.md#quickstart) for the full flow).
 Cookiecutter generates `backend.hcl` from the `terraform_backend_bucket_name` /
