@@ -97,3 +97,11 @@ output "emr_sandbox_image_uri" {
 output "failure_notification_receivers" {
   value = var.failure_notification_receivers
 }
+
+output "bedrock_inference_profile_arns" {
+  value = var.enable_llm ? {
+    large  = aws_bedrock_inference_profile.large[0].arn
+    medium = aws_bedrock_inference_profile.medium[0].arn
+    small  = aws_bedrock_inference_profile.small[0].arn
+  } : null
+}
