@@ -61,7 +61,8 @@ values you'd otherwise paste from the shell:
 cookiecutter https://github.com/erwan-simon/aws-data-platform-framework \
   --directory cookiecutter_template \
   aws_account_id=$(aws sts get-caller-identity --query Account --output text) \
-  aws_region=$(aws configure get region)
+  aws_region=$(aws configure get region) \
+  dataplatform_version=$(git ls-remote --tags https://github.com/erwan-simon/aws-data-platform-framework | awk -F'/' '{print $NF}' | grep -v '\^{}$' | sort -V | tail -1)
 ```
 
 Then `cd <your_domain_name>/iac`, `terraform init -backend-config=backend.hcl`, and
