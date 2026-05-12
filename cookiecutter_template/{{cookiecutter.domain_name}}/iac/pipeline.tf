@@ -1,5 +1,5 @@
 # This pipeline declares 5 tasks that exercise every platform feature (native + Spark, SQL entrypoint, upsert, empty-DF, table maintenance, validation, cleanup). Trim aggressively for a real domain.
-module "integration_tests_pipeline" {
+module "pipeline" {
   source               = "{{cookiecutter.pipeline_factory_source}}"
   domain_object        = module.domain
   pipeline_name        = "{{cookiecutter.pipeline_name}}"
@@ -14,7 +14,7 @@ module "integration_tests_pipeline" {
   tasks_configuration = {
     "test_native_write" : {
       "type" : "python",
-      "path" : "integration_tests_pipeline/test_write",
+      "path" : "pipeline_tasks/test_write",
       "infra_type" : "ECS",
       "infra_config" : {},
       "input_tables" : [],
@@ -41,7 +41,7 @@ module "integration_tests_pipeline" {
     },
     "test_native_sql_entrypoint" : {
       "type" : "sql",
-      "path" : "integration_tests_pipeline/test_native_sql_entrypoint",
+      "path" : "pipeline_tasks/test_native_sql_entrypoint",
       "infra_type" : "ECS",
       "infra_config" : {},
       "input_tables" : [
@@ -55,7 +55,7 @@ module "integration_tests_pipeline" {
     },
     "test_spark_write" : {
       "type" : "python",
-      "path" : "integration_tests_pipeline/test_write",
+      "path" : "pipeline_tasks/test_write",
       "infra_type" : "EMRServerless",
       "infra_config" : {},
       "input_tables" : [],
@@ -82,7 +82,7 @@ module "integration_tests_pipeline" {
     },
     "test_spark_sql_entrypoint" : {
       "type" : "sql",
-      "path" : "integration_tests_pipeline/test_spark_sql_entrypoint",
+      "path" : "pipeline_tasks/test_spark_sql_entrypoint",
       "infra_type" : "EMRServerless",
       "infra_config" : {},
       "input_tables" : [
@@ -96,7 +96,7 @@ module "integration_tests_pipeline" {
     },
     "check_and_clean" : {
       "type" : "python",
-      "path" : "integration_tests_pipeline/check_and_clean",
+      "path" : "pipeline_tasks/check_and_clean",
       "infra_type" : "ECS",
       "infra_config" : {},
       "input_tables" : [
@@ -106,7 +106,7 @@ module "integration_tests_pipeline" {
       "output_tables" : {},
     },
   }
-  orchestration_configuration_template_file_path = "${path.root}/integration_tests_pipeline/orchestration_configuration.tftpl.json"
+  orchestration_configuration_template_file_path = "${path.root}/pipeline_tasks/orchestration_configuration.tftpl.json"
   role_to_assume_arn                             = var.role_to_assume_arn
   depends_on                                     = [module.pipeline_utils_deploy]
 }

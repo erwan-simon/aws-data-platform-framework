@@ -5,9 +5,9 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 ## Layout
 - `iac/domain.tf` — provisions the domain (S3, Glue DB, IAM, Lake Formation, …)
 - `iac/pipeline.tf` — declares the Step Functions pipeline; `tasks_configuration` is the canonical list of tasks
-- `iac/integration_tests_pipeline/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which)
-- `iac/integration_tests_pipeline/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
-- `iac/integration_tests_pipeline/<task_name>/requirements.txt` — task-specific Python deps
+- `iac/pipeline_tasks/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which)
+- `iac/pipeline_tasks/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
+- `iac/pipeline_tasks/<task_name>/requirements.txt` — task-specific Python deps
 - `iac/utils/` — optional shared Python lib published to CodeArtifact and importable from tasks
 
 ## Framework docs
