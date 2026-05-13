@@ -13,5 +13,5 @@ module "domain" {
   role_to_assume_arn                   = var.role_to_assume_arn
   datalake_admin_principal_arns        = values(data.aws_iam_role.datalake_admins)[*].arn
   skip_emr_serverless_sandbox_creation = {{cookiecutter.skip_emr_serverless_sandbox_creation}}
-  failure_notification_receivers       = split(",", var.failure_notification_receivers)
+  failure_notification_receivers       = compact(split(",", var.failure_notification_receivers))
 }
