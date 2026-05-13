@@ -6,6 +6,7 @@ variable "project_name" {
 variable "git_repository" {
   type        = string
   description = "git respository from which this resource is from"
+  default     = "none"
 }
 
 variable "role_to_assume_arn" {
