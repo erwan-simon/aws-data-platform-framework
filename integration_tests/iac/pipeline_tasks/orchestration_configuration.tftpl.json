@@ -1,0 +1,42 @@
+{
+  "Comment": "Pipeline used as integration tests",
+  "StartAt": "parallel",
+  "States": {
+    "parallel": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "test_native_write",
+          "States": {
+            "test_native_write": {
+              ${___TEST_NATIVE_WRITE_CONFIGURATION___},
+              "Next": "test_native_sql_entrypoint"
+            },
+            "test_native_sql_entrypoint": {
+              ${___TEST_NATIVE_SQL_ENTRYPOINT_CONFIGURATION___},
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "test_spark_write",
+          "States": {
+            "test_spark_write": {
+              ${___TEST_SPARK_WRITE_CONFIGURATION___},
+              "Next": "test_spark_sql_entrypoint"
+            },
+            "test_spark_sql_entrypoint": {
+              ${___TEST_SPARK_SQL_ENTRYPOINT_CONFIGURATION___},
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "check_and_clean"
+    },
+    "check_and_clean": {
+      ${___CHECK_AND_CLEAN_CONFIGURATION___},
+      "End": true
+    }
+  }
+}

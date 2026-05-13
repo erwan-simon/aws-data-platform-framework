@@ -64,8 +64,9 @@ Formation. Athena provides SQL access on top.
 
 The fastest way to see the framework in action is to scaffold a domain via
 [`cookiecutter_template/`](cookiecutter_template) — it provisions a complete domain plus a
-multi-task pipeline (Python, native SQL, Spark SQL) that doubles as the platform's own
-integration test fixture.
+minimal 2-task starter pipeline (`write_mock_data` → `transform`) you can rewrite. For a
+broader, feature-exhaustive example, see [`integration_tests/`](integration_tests) (the in-tree
+domain CI runs against).
 
 Prerequisites: an AWS account, an existing S3 bucket and DynamoDB table for Terraform state,
 and a VPC tagged `Name = {project_name}_network_platform_prod`. Full prerequisites in
@@ -90,11 +91,10 @@ $EDITOR terraform.tfvars
 terraform init -backend-config=backend.hcl
 terraform workspace new dev
 terraform apply
-
-# 4. Run the integration test pipeline end-to-end
-python ../../scripts/run_integration_tests.py \
-  "arn:aws:states:eu-west-1:${AWS_ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_${DOMAIN_NAME}_dev_tests"
 ```
+
+The pipeline is scheduled by default; you can also trigger it manually from the Step Functions
+console (`{PROJECT_NAME}_{DOMAIN_NAME}_dev_{PIPELINE_NAME}`) once `terraform apply` completes.
 
 To build your own deployment from scratch (consuming `domain_factory` and `pipeline_factory`
 as remote Terraform modules pinned to a release tag), see the
@@ -129,8 +129,9 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 ├── datalake_sdk/         Python SDK and CLI used at runtime by tasks (and by humans)
 ├── domain_factory/       Terraform module — per-domain foundation
 ├── pipeline_factory/     Terraform module — pipelines from tasks_configuration
-├── cookiecutter_template/ Scaffold for a new domain — also drives CI integration tests
-├── scripts/              CI helpers (cookiecutter wrapper, integration test driver)
+├── cookiecutter_template/ Scaffold for a new domain (minimal 2-task starter pipeline)
+├── integration_tests/    In-tree, feature-exhaustive domain CI deploys end-to-end
+├── scripts/              CI helpers (scaffold generator, integration test driver)
 └── docs/                 In-depth guides (deployment, pipeline authoring)
 ```
 

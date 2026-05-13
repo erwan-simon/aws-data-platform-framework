@@ -12,9 +12,10 @@ The framework consists of two Terraform modules that you compose:
   domain**. Each invocation creates a Step Functions state machine and the tasks that go with it.
 
 You consume them either by scaffolding a new project from
-[`cookiecutter_template/`](../cookiecutter_template) (which is the working example, and what CI
-deploys for integration tests) or by referencing them from a remote `git::` source pinned to a
-release tag — the latter is the production pattern described below.
+[`cookiecutter_template/`](../cookiecutter_template) (a minimal 2-task starter; one of the two
+domains CI deploys for integration tests, the other being the feature-exhaustive
+[`integration_tests/`](../integration_tests)) or by referencing them from a remote `git::`
+source pinned to a release tag — the latter is the production pattern described below.
 
 ## Prerequisites
 
@@ -45,9 +46,9 @@ The framework expects these resources to already exist in the target account:
 
 ## Building your deployment
 
-The repo's [`cookiecutter_template/`](../cookiecutter_template) is a complete reference
-implementation. The easiest way to use it is to invoke cookiecutter directly against the remote
-repo (no clone needed):
+The repo's [`cookiecutter_template/`](../cookiecutter_template) is a minimal starter
+(2-task pipeline you'll replace) wired to the right module sources. The easiest way to use it is
+to invoke cookiecutter directly against the remote repo (no clone needed):
 
 ```bash
 pip install cookiecutter
@@ -248,7 +249,9 @@ from CodeArtifact) and add the task's own dependencies and code on top.
 ## CI/CD: GitLab is the source of truth
 
 All CI runs in [`.gitlab-ci.yml`](../.gitlab-ci.yml). The stages are: `init`, `format`,
-`security`, `unit_tests`, `deploy_integration_tests`, `run_integration_tests`, `mirror_to_github`.
+`security`, `unit_tests`, `integration_tests` (two parallel jobs — one deploys+runs the in-tree
+[`integration_tests/`](../integration_tests) full fixture, the other generates the cookiecutter
+scaffold and deploys+runs that), `mirror_to_github`.
 
 GitHub is a **read-only mirror**. The only thing that runs there is
 [`.github/workflows/`](../.github/workflows/) `semantic-release`, which on every push to `prod`

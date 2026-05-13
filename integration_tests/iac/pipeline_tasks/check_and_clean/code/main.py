@@ -89,7 +89,7 @@ def main(job: BaseProcessingWrapper):
     The datalake sdk is the real entrypoint of the job,
     which then calls this function
     """
-    short_database_name = "{{cookiecutter.domain_name}}"
+    short_database_name = "datalake_test"
     long_database_name = (
         f"{job.stage_name}_" if job.stage_name != "prod" else ""
     ) + short_database_name
@@ -101,7 +101,7 @@ def main(job: BaseProcessingWrapper):
         job,
         short_database_name,
         "test_native_upsert",
-        expected_pipeline_name="{{cookiecutter.pipeline_name}}",
+        expected_pipeline_name="tests",
         expected_task_name="test_native_write",
         expected_upsert_keys=["name", "email"],
     )
@@ -109,7 +109,7 @@ def main(job: BaseProcessingWrapper):
         job,
         short_database_name,
         "test_spark_upsert",
-        expected_pipeline_name="{{cookiecutter.pipeline_name}}",
+        expected_pipeline_name="tests",
         expected_task_name="test_spark_write",
         expected_upsert_keys=["name", "email"],
     )

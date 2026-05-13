@@ -127,7 +127,7 @@ def main(job: BaseProcessingWrapper):
     """
     assert job.task_additional_parameters["hello"] == "world!"
     assert job.task_additional_parameters["other_hello"] == "world!"
-    database_name = "{{cookiecutter.domain_name}}"
+    database_name = "datalake_test"
     if IS_SPARK_ENVIRONMENT:
         table_prefix = "test_spark"
     else:

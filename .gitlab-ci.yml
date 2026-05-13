@@ -1,6 +1,5 @@
 variables:
   PROJECT_NAME: poc
-  DOMAIN_NAME: datalake_test
   STAGE_NAME: $CI_COMMIT_REF_SLUG
   PYTHON_CODE_PATH: "./"
   PYENV_VERSION: 3.13
@@ -21,45 +20,43 @@ stages:
   - format
   - security
   - unit_tests
-  - deploy_integration_tests
-  - run_integration_tests
+  - integration_tests
   - mirror_to_github
 
 #############################################################
 ######################## INTEGRATION-TESTS ##################
 #############################################################
+# Two parallel jobs deploy and exercise different pipeline shapes against the live AWS account:
+#   - `integration_tests_full_fixture` deploys the in-tree `integration_tests/` project
+#     (5 tasks, native + Spark, SQL entrypoint, upsert, table maintenance, cleanup) — broad
+#     coverage of platform features.
+#   - `integration_tests_scaffold` runs the cookiecutter template through `generate_scaffold.sh`
+#     and deploys the resulting minimal 2-task pipeline — verifies what a new user actually starts with.
 
-deploy_integration_tests:
-  stage: deploy_integration_tests
+.integration_tests_base:
+  stage: integration_tests
   allow_failure: false
-  script:
+  variables:
+    PYTHONUNBUFFERED: "1"
+  before_script:
     - mkdir -p ~/.aws
     - echo "${CI_JOB_JWT_V2}" > /tmp/web_identity_token
     - echo -e "[profile default]\nrole_arn=${GITLAB_ROLE_ARN}\nweb_identity_token_file=/tmp/web_identity_token" > ~/.aws/config
-    - pip install cookiecutter
-    - bash scripts/generate_integration_test_project.sh
-    - cd _integration_test/datalake_test/iac
-    - terraform init -backend-config=backend.hcl
-    - terraform workspace new $CI_COMMIT_BRANCH || terraform workspace select $CI_COMMIT_BRANCH
-    - terraform apply --auto-approve
+    - pip install boto3
   needs:
     - init_ecr_token
   except:
     refs:
       - tags
 
-run_integration_tests:
-  stage: run_integration_tests
-  allow_failure: false
+integration_tests_full_fixture:
+  extends: .integration_tests_base
   script:
-    - export step_function_arn="arn:aws:states:${AWS_DEFAULT_REGION}:${ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_datalake_test_${STAGE_NAME}_tests"
-    - pip install boto3
-    - python scripts/run_integration_tests.py ${step_function_arn}
-  needs:
-    - init_ecr_token
-    - deploy_integration_tests
-  variables:
-    PYTHONUNBUFFERED: "1"
-  except:
-    refs:
-      - tags
+    - bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests
+
+integration_tests_scaffold:
+  extends: .integration_tests_base
+  script:
+    - pip install cookiecutter
+    - bash scripts/generate_scaffold.sh
+    - bash scripts/run_integration_tests.sh _integration_test/datalake_scaffold/iac datalake_scaffold main

@@ -8,7 +8,6 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 - `iac/pipeline_tasks/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which)
 - `iac/pipeline_tasks/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
 - `iac/pipeline_tasks/<task_name>/requirements.txt` — task-specific Python deps
-- `iac/utils/` — optional shared Python lib published to CodeArtifact and importable from tasks
 
 ## Framework docs
 
@@ -39,7 +38,5 @@ Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platfor
 - **Change the trigger**: edit `trigger` in `pipeline.tf` (schedule cron, EventBridge pattern, or manual invocation).
 - **Apply**: `cd iac && terraform init -backend-config=backend.hcl && terraform workspace select <stage> && terraform apply`.
 
-## Why the initial pipeline looks like this
-The pipeline you find here at scaffold time (5 tasks: `test_native_write`, `test_native_sql_entrypoint`, `test_spark_write`, `test_spark_sql_entrypoint`, `check_and_clean`) is the **framework's own integration test fixture** — it exists to exercise every feature end-to-end (native + Spark, SQL transforms, upsert, empty-DF, table maintenance, validation, cleanup) so the framework can be deployed and asserted on by CI.
-
-Treat it as a working **reference model**, not as something to preserve: read it when in doubt about a real-world task shape, then **gut, rename, or rewrite** it freely to match the actual pipeline this domain needs. The associated `lakeformation.tf`, `additional_permissions_policy.tf`, `code_pipeline_utils.tf` and `utils/` are documented inline as test-only — drop them once they're not relevant.
+## Starting pipeline
+The scaffold ships with a minimal 2-task example: `write_mock_data` (native Python, writes a hardcoded pandas DataFrame) → `transform` (SQL task that reads `mock_data` and writes `mock_data_transformed`). Replace it with your actual pipeline — it's a placeholder, not a contract.
