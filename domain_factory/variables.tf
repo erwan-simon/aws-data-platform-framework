@@ -62,7 +62,7 @@ variable "enable_llm" {
 variable "failure_investigation_model_size" {
   type        = string
   description = "Bedrock model size (small / medium / large) used by the failsafe shutdown Lambda when datalfred investigates a pipeline failure. Ignored when enable_llm = false."
-  default     = "medium"
+  default     = "small"
   validation {
     condition     = contains(["small", "medium", "large"], var.failure_investigation_model_size)
     error_message = "failure_investigation_model_size must be one of: small, medium, large."

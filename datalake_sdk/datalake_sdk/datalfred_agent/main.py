@@ -228,7 +228,7 @@ def main(
 
 @click.command("datalfred", short_help="LLM agent to query data and do ingestions run")
 @click.option(
-    "-s", "--model-size", required=False, default="large", help="Size of the model"
+    "-s", "--model-size", required=False, default="small", help="Size of the model"
 )
 @click.option(
     "-d", "--print-sub-agent-debug", required=False, default=False, is_flag=True
@@ -238,7 +238,7 @@ def main(
 @click.pass_context
 def command_line_datalfred_agent(
     ctx,
-    model_size="large",
+    model_size="small",
     print_sub_agent_debug=False,
     session_id: str = None,
     user_prompt: str = None,
