@@ -8,6 +8,7 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 - `iac/<pipeline_name>/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which); one per pipeline
 - `iac/<pipeline_name>/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
 - `iac/<pipeline_name>/<task_name>/requirements.txt` — task-specific Python deps
+- `iac/<pipeline_name>/<task_name>/code/tables_configuration/<db>.<table>.yaml` *(optional)* — per-output-table metadata; the SDK applies the `description:` to the Glue table and the per-column `schema: <col>: description:` as column comments on every successful ingestion. See `docs/pipelines.md` §"Table metadata".
 
 Each pipeline gets its own folder under `iac/` named after the pipeline. The scaffold ships with one pipeline (`{{cookiecutter.pipeline_name}}/`); add more by creating sibling folders and `iac/pipeline_<name>.tf` declarations.
 
