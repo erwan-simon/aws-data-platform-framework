@@ -4,7 +4,7 @@ resource "aws_bedrock_inference_profile" "large" {
   description = "Bedrock inference profile for ${local.environment_name} using a large LLM"
 
   model_source {
-    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-opus-4-7"
   }
 }
 
@@ -14,7 +14,7 @@ resource "aws_bedrock_inference_profile" "medium" {
   description = "Bedrock inference profile for ${local.environment_name} using a medium LLM"
 
   model_source {
-    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-3-haiku-20240307-v1:0"
+    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-sonnet-4-6"
   }
 }
 
@@ -24,6 +24,6 @@ resource "aws_bedrock_inference_profile" "small" {
   description = "Bedrock inference profile for ${local.environment_name} using a small LLM"
 
   model_source {
-    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-pro-v1:0"
+    copy_from = "arn:aws:bedrock:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0"
   }
 }
