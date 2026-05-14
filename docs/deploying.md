@@ -289,5 +289,9 @@ etc. The version bump (major/minor/patch) is derived from the prefixes.
 - **VPC tags missing.** The factories look up the VPC by `Name = {project}_network_platform_prod`
   and subnets by `Tier`. A misnamed VPC produces an opaque "data source returned no results"
   during `terraform plan`.
+- **Network preconditions.** `domain_factory/network_validation.tf` asserts at plan time that
+  the selected subnets exist and have a 0.0.0.0/0 route via an Internet Gateway (when
+  `use_public_subnets = true`) or via a NAT Gateway (when `false`). A missing NAT or IGW
+  produces an explicit error instead of an opaque ECS/EMR runtime failure.
 - **Lake Formation admin needed at apply time.** The deploying principal must already be a
   Lake Formation admin in the account, otherwise the data-location registration step fails.
