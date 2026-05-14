@@ -68,9 +68,10 @@ cookiecutter https://github.com/erwan-simon/aws-data-platform-framework \
 
 Then `cd <your_domain_name>/iac`, `terraform init -backend-config=backend.hcl`, and
 `terraform apply` (see the [root README quickstart](../README.md#quickstart) for the full flow).
-Cookiecutter generates `backend.hcl` from the `terraform_backend_bucket_name` /
-`terraform_backend_dynamodb_name` prompts, so you don't have to pass `-backend-config` flags
-manually.
+Cookiecutter generates `backend.hcl` from the `terraform_backend_bucket_name` prompt; if you
+leave that prompt empty, the scaffold uses a local Terraform backend (state stored under
+`iac/terraform.tfstate.d/`), `backend.hcl` is not generated, and you just run `terraform init`
+without `-backend-config`.
 For your own deployment, the recommended pattern is to consume the modules as remote git
 sources, pinned to a release tag.
 

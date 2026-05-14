@@ -1,7 +1,9 @@
+import os
 import subprocess
 from urllib.parse import urlsplit, urlunsplit
 
 GIT_REPOSITORY = "{{cookiecutter.git_repository}}"
+TERRAFORM_BACKEND_BUCKET = "{{cookiecutter.terraform_backend_bucket_name}}"
 
 
 def strip_credentials(url: str) -> str:
@@ -24,6 +26,12 @@ def has_git_identity() -> bool:
 
 
 def main():
+    if not TERRAFORM_BACKEND_BUCKET and os.path.exists("iac/backend.hcl"):
+        # Local backend: backend.hcl has no purpose; drop it so `terraform init` works without -backend-config.
+        os.remove("iac/backend.hcl")
+        print(
+            "No terraform_backend_bucket_name provided — using local Terraform backend, removed iac/backend.hcl."
+        )
     subprocess.run(["git", "init", "-q"], check=True)
     clean_repository = strip_credentials(GIT_REPOSITORY) if GIT_REPOSITORY else ""
     if clean_repository:

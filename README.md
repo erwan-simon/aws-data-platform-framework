@@ -70,7 +70,7 @@ domain CI runs against).
 
 Prerequisites:
 * an AWS account
-* an existing S3 bucket and DynamoDB table for Terraform state
+* (optional) an existing S3 bucket for Terraform state — leave the cookiecutter prompt empty to use a local backend instead
 * a VPC tagged `Name = {project_name}_network_platform_prod`.
 
 Full prerequisites in [`docs/deploying.md`](docs/deploying.md).
@@ -96,6 +96,9 @@ cd iac && \
     terraform workspace new dev && \
     terraform apply
 ```
+
+If you left `terraform_backend_bucket_name` empty at scaffold time, the scaffold uses a local
+backend — drop the `-backend-config=backend.hcl` flag and just run `terraform init`.
 
 The pipeline is scheduled by default; you can also trigger it manually from the Step Functions
 console (`{PROJECT_NAME}_{DOMAIN_NAME}_dev_{PIPELINE_NAME}`) once `terraform apply` completes.
@@ -145,7 +148,7 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 - Terraform with the AWS provider `>= 5.60.0, < 6.14.0`
 - Python `~3.13` and Poetry (only if you build the SDK from source)
 - Docker (for local task execution and image builds)
-- An existing Terraform state backend (S3 bucket + DynamoDB table)
+- A Terraform state backend — either an existing S3 bucket (set `terraform_backend_bucket_name` at scaffold time), or none (leave the prompt empty to use a local backend)
 - A VPC tagged `Name = {project_name}_network_platform_prod` with `Tier`-tagged subnets
 
 See [`docs/deploying.md`](docs/deploying.md) for the full prerequisites checklist.

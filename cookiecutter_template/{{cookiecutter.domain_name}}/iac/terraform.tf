@@ -13,12 +13,15 @@ provider "aws" {
 }
 
 terraform {
+{% if cookiecutter.terraform_backend_bucket_name -%}
   backend "s3" {
     key                  = "{{cookiecutter.domain_name}}.tfstate"
     workspace_key_prefix = ""
     encrypt              = true
     region               = "{{cookiecutter.aws_region}}"
+    use_lockfile         = true
   }
+{%- endif %}
   required_providers {
     aws = {
       source  = "hashicorp/aws"

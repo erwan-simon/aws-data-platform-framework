@@ -19,7 +19,7 @@ After `terraform init`, the framework repo is cached locally — that's the cano
 - `iac/.terraform/modules/domain/pipeline_factory/variables.tf` — every pipeline/task knob
 - `iac/.terraform/modules/domain/datalake_sdk/README.md` — SDK runtime API (`job.ingest`, `job.spark_session`, …)
 
-**Claude — if `iac/.terraform/modules/domain/` is missing**, the framework hasn't been pulled locally yet. Run `cd iac && terraform init -backend-config=backend.hcl` (or ask the user to) before relying on the local docs — that command clones the framework repo into `.terraform/modules/` so everything above becomes readable.
+**Claude — if `iac/.terraform/modules/domain/` is missing**, the framework hasn't been pulled locally yet. Run `cd iac && terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}` (or ask the user to) before relying on the local docs — that command clones the framework repo into `.terraform/modules/` so everything above becomes readable.
 
 Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platform-framework
 
@@ -36,7 +36,7 @@ Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platfor
 - **Modify a task's code**: edit `<task_name>/code/main.py`. SDK runtime env vars (`PROJECT_NAME`, `DOMAIN_NAME`, `INPUT_TABLES`, `OUTPUT_TABLES`, …) are injected by Terraform — read them via `job.*`, don't hardcode.
 - **Remove a task**: delete its entry in `tasks_configuration`, its state in the orchestration JSON, and its folder.
 - **Change the trigger**: edit `trigger` in `pipeline.tf` (schedule cron, EventBridge pattern, or manual invocation).
-- **Apply**: `cd iac && terraform init -backend-config=backend.hcl && terraform workspace select <stage> && terraform apply`.
+- **Apply**: `cd iac && terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %} && terraform workspace select <stage> && terraform apply`.
 
 ## Starting pipeline
 The scaffold ships with a minimal 2-task example: `write_mock_data` (native Python, writes a hardcoded pandas DataFrame) → `transform` (SQL task that reads `mock_data` and writes `mock_data_transformed`). Replace it with your actual pipeline — it's a placeholder, not a contract.
