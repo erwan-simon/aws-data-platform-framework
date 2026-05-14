@@ -19,3 +19,4 @@ _integration_test/
 !cookiecutter_template/{{cookiecutter.domain_name}}/CLAUDE.md
 !CLAUDE.md
 CLAUDE.local.md
+integration_tests/iac/backend.hcl
