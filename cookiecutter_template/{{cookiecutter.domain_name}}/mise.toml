@@ -13,3 +13,15 @@
 terraform = "1.10.5"
 awscli    = "2.22.0"
 poetry    = "1.8.4"
+
+# `mise run deploy <workspace>` runs init, selects/creates the workspace, and applies — with
+# the pinned terraform version, regardless of whether mise's shell hook is active.
+
+[tasks.deploy]
+description = "terraform init + workspace select/new + apply. Usage: mise run deploy <workspace>"
+dir = "iac"
+run = [
+  "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
+  "terraform workspace select {{arg(name='ws')}} 2>/dev/null || terraform workspace new {{arg(name='ws')}}",
+  "terraform apply",
+]

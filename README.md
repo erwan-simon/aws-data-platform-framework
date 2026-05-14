@@ -161,6 +161,19 @@ Tool versions are pinned in [`mise.toml`](mise.toml). With [mise](https://mise.j
 
 See [`docs/deploying.md`](docs/deploying.md) for the full prerequisites checklist.
 
+## Working on the framework
+
+Common operations are wrapped as `mise` tasks (run `mise tasks` to list them):
+
+| Task | What it does |
+| --- | --- |
+| `mise run sdk-install` | `poetry install` in `datalake_sdk/` (pass `ARGS="-E agent"` for the Datalfred extra) |
+| `mise run sdk-build`   | Build the SDK wheel into `datalake_sdk/dist/` |
+| `mise run integration-full` | Deploy + run the in-tree `integration_tests/` fixture (5 tasks) |
+| `mise run integration-scaffold` | Generate the cookiecutter scaffold and run its integration test |
+
+The integration tasks call `scripts/run_integration_tests.sh`, which expects the standard AWS + Terraform-backend env vars (`ACCOUNT_ID`, `AWS_DEFAULT_REGION`, `PROJECT_NAME`, `STAGE_NAME`, `TERRAFORM_BACKEND_BUCKET`, `TERRAFORM_BACKEND_DYNAMODB`).
+
 ## License & Contributing
 
 This project is licensed under [Creative Commons Attribution-NonCommercial 4.0](LICENSE).

@@ -28,9 +28,16 @@ Tool versions are pinned in [`mise.toml`](mise.toml). With [mise](https://mise.j
 ## Quickstart
 
 ```bash
+mise install               # pulls the versions pinned in mise.toml
+mise run deploy dev        # init + workspace select/new + apply (replace `dev` with your stage)
+```
+
+`mise run deploy` always uses the pinned versions (no need for mise's shell hook to be active). To call terraform directly instead, activate the shell hook (`mise activate zsh|bash|fish` in your shell rc) so the pinned versions take over when you `cd` into the repo, then:
+
+```bash
 cd iac
 terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}
-terraform workspace new dev          # or: terraform workspace select dev
+terraform workspace new dev    # or: terraform workspace select dev
 terraform apply
 ```
 
@@ -63,7 +70,7 @@ Each pipeline lives under `iac/<pipeline_name>/`. Add more by declaring a siblin
 
 ## Day-to-day operations
 
-- **Deploy a change**: `cd iac && terraform plan && terraform apply` in the right workspace.
+- **Deploy a change**: `mise run deploy <stage>` (init + workspace select/new + apply), or `cd iac && terraform plan && terraform apply` from the right workspace if you prefer to drive terraform yourself.
 - **Add a new task**: create `iac/<pipeline>/<task>/code/main.py`, add an entry to `tasks_configuration` in the pipeline's `.tf`, AND add a state in `orchestration_configuration.tftpl.json` (forgetting the third one is the classic mistake). Or use `/new-task` (see below).
 - **Add a new pipeline**: declare `iac/pipeline_<name>.tf` and create `iac/<name>/`. Or use `/new-pipeline`.
 - **Document a table**: drop a YAML under `iac/<pipeline>/<task>/code/tables_configuration/<db>.<table>.yaml`. The SDK applies it to Glue (table description + column comments) on every successful ingestion.

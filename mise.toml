@@ -8,6 +8,29 @@
 
 [tools]
 terraform = "1.10.5"
-python    = "3.13.1"
+python    = "3.13.3"
 poetry    = "1.8.4"
 awscli    = "2.22.0"
+
+# `mise run <task>` to execute, `mise tasks` to list.
+
+[tasks.sdk-install]
+description = "Install datalake_sdk deps (use ARGS='-E agent' for the agent extra)"
+dir = "datalake_sdk"
+run = "poetry install $ARGS"
+
+[tasks.sdk-build]
+description = "Build the datalake_sdk wheel into datalake_sdk/dist/"
+dir = "datalake_sdk"
+run = "poetry build"
+
+[tasks.integration-full]
+description = "Deploy + run the in-tree integration_tests/ fixture (5 tasks)"
+run = "bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests"
+
+[tasks.integration-scaffold]
+description = "Generate the cookiecutter scaffold and run its integration test"
+run = [
+  "bash scripts/generate_scaffold.sh",
+  "bash scripts/run_integration_tests.sh _integration_test/datalake_scaffold/iac datalake_scaffold main",
+]

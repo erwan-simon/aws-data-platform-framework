@@ -42,6 +42,8 @@ poetry install                  # add `-E agent` for the Datalfred extras
 poetry run datalake_sdk --help
 ```
 
+From the repo root you can also use the wrapped tasks: `mise run sdk-install` (pass `ARGS="-E agent"` for the extra) and `mise run sdk-build`.
+
 For a system-wide install: `poetry build && pip install dist/*.whl`.
 
 ### Optional Datalfred agent
