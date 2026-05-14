@@ -37,6 +37,7 @@ Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platfor
 - **Remove a task**: delete its entry in `tasks_configuration`, its state in the orchestration JSON, and its folder.
 - **Change the trigger**: edit `trigger` in `pipeline.tf` (schedule cron, EventBridge pattern, or manual invocation).
 - **Apply**: `cd iac && terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %} && terraform workspace select <stage> && terraform apply`.
+- **Upgrade the framework**: `/update-framework [vX.Y.Z]` (omit the version to take the latest release). The skill diffs the framework between the pinned and target version, surfaces breaking changes and new opt-in features, submits a plan for approval, then patches `iac/` and runs `terraform plan` to verify.
 
 ## Starting pipeline
 The scaffold ships with a minimal 2-task example: `write_mock_data` (native Python, writes a hardcoded pandas DataFrame) → `transform` (SQL task that reads `mock_data` and writes `mock_data_transformed`). Replace it with your actual pipeline — it's a placeholder, not a contract.

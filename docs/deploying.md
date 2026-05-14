@@ -153,7 +153,10 @@ terraform workspace new dev
 terraform apply
 ```
 
-Pin to a specific framework release (`?ref=v1.4.0`); upgrades are deliberate.
+Pin to a specific framework release (`?ref=v1.4.0`); upgrades are deliberate. The scaffold ships
+a Claude Code skill — `/update-framework [vX.Y.Z]` — that diffs the framework between the pinned
+and target version, surfaces breaking changes and new opt-in features, submits a plan for
+approval, then patches `iac/` and runs `terraform plan` to verify.
 
 For the full task-authoring picture (the structure of `my_task/`, the orchestration template,
 how runtime env vars are wired), see [`pipelines.md`](pipelines.md).

@@ -41,6 +41,12 @@ flowchart LR
   pipelines, and trigger ingestions in natural language. Disabled per-domain with
   `enable_llm = false` on the `domain_factory` call — skips Bedrock inference profile creation
   and stops the failsafe-shutdown Lambda from invoking Datalfred on pipeline failures.
+- **Claude Code, out of the box.** Every scaffolded domain ships with a `CLAUDE.md` that briefs
+  Claude on the framework's conventions, the task contract, and where to find the canonical
+  docs — so an LLM working in your repo writes code that fits, not code that fights the
+  framework. Plus a `/update-framework` skill that diffs your pinned version against any newer
+  release, surfaces breaking changes *and* new opt-in features, and walks you through the
+  upgrade interactively. Upgrading the framework becomes a conversation, not a chore.
 
 ## How it works
 
