@@ -68,29 +68,33 @@ minimal 2-task starter pipeline (`write_mock_data` → `transform`) you can rewr
 broader, feature-exhaustive example, see [`integration_tests/`](integration_tests) (the in-tree
 domain CI runs against).
 
-Prerequisites: an AWS account, an existing S3 bucket and DynamoDB table for Terraform state,
-and a VPC tagged `Name = {project_name}_network_platform_prod`. Full prerequisites in
-[`docs/deploying.md`](docs/deploying.md).
+Prerequisites:
+* an AWS account
+* an existing S3 bucket and DynamoDB table for Terraform state
+* a VPC tagged `Name = {project_name}_network_platform_prod`.
 
+Full prerequisites in [`docs/deploying.md`](docs/deploying.md).
+
+1. Install cookiecutter
 ```bash
-# 1. Install cookiecutter
 pip install cookiecutter
+```
 
-# 2. Scaffold a project straight from the repo (interactive — it'll prompt for AWS account,
-#    project name, etc.). No need to clone first. Any `key=value` positional argument
-#    pre-fills a prompt — e.g. resolve the AWS account id from your shell:
+2. Scaffold a project straight from the repo (interactive — it'll prompt for AWS account, project name, etc.). No need to clone first. Any `key=value` positional argument pre-fills a prompt — e.g. resolve the AWS account id from your shell:
+```bash
 cookiecutter https://github.com/erwan-simon/aws-data-platform-framework \
   --directory cookiecutter_template \
   aws_account_id=$(aws sts get-caller-identity --query Account --output text) \
   aws_region=$(aws configure get region) \
   dataplatform_version=$(git ls-remote --tags https://github.com/erwan-simon/aws-data-platform-framework | awk -F'/' '{print $NF}' | grep -v '\^{}$' | sort -V | tail -1)
-cd <your_domain_name>/iac
-$EDITOR terraform.tfvars
+```
 
-# 3. Deploy
-terraform init -backend-config=backend.hcl
-terraform workspace new dev
-terraform apply
+3. Deploy
+```bash
+cd iac && \
+    terraform init -backend-config=backend.hcl && \
+    terraform workspace new dev && \
+    terraform apply
 ```
 
 The pipeline is scheduled by default; you can also trigger it manually from the Step Functions
