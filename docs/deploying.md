@@ -35,8 +35,11 @@ The framework expects these resources to already exist in the target account:
 - **Terraform state backend.** An S3 bucket and a DynamoDB table for state and locking.
 - **VPC.** A VPC tagged `Name = {project_name}_network_platform_prod`, containing subnets
   tagged `Tier = Public` and/or `Tier = Private`. The factories pick subnets by tag, not by ID.
+  The companion [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) repo
+  provisions a VPC with the right `Name`/`Tier` tags out of the box.
 - **NAT gateway**, if you set `use_public_subnets = false` — tasks need outbound internet access
-  to reach AWS APIs and ECR.
+  to reach AWS APIs and ECR. [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack)
+  can provision one via its `nat_gateways_count` variable.
 - **Lake Formation** must be enabled in the region (default settings are fine; the framework
   registers locations as it deploys). Whoever runs `terraform apply` must already be a Lake
   Formation admin in the account, or the data-location registration step fails.

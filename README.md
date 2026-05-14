@@ -71,7 +71,7 @@ domain CI runs against).
 Prerequisites:
 * an AWS account
 * (optional) an existing S3 bucket for Terraform state — leave the cookiecutter prompt empty to use a local backend instead
-* a VPC tagged `Name = {project_name}_network_platform_prod`.
+* a VPC tagged `Name = {project_name}_network_platform_prod` (the companion [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) repo provisions one with the right tags, plus an optional NAT gateway via `nat_gateways_count` if you want to keep tasks in private subnets).
 
 Full prerequisites in [`docs/deploying.md`](docs/deploying.md).
 
@@ -149,7 +149,7 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 - Python `~3.13` and Poetry (only if you build the SDK from source)
 - Docker (for local task execution and image builds)
 - A Terraform state backend — either an existing S3 bucket (set `terraform_backend_bucket_name` at scaffold time), or none (leave the prompt empty to use a local backend)
-- A VPC tagged `Name = {project_name}_network_platform_prod` with `Tier`-tagged subnets
+- A VPC tagged `Name = {project_name}_network_platform_prod` with `Tier`-tagged subnets — see [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) for a ready-made stack (NAT gateway optional via `nat_gateways_count`)
 
 See [`docs/deploying.md`](docs/deploying.md) for the full prerequisites checklist.
 
