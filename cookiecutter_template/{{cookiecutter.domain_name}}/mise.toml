@@ -35,3 +35,20 @@ run = [
   "terraform workspace select {% raw %}{{arg(name='ws')}}{% endraw %} 2>/dev/null || terraform workspace new {% raw %}{{arg(name='ws')}}{% endraw %}",
   "terraform apply",
 ]
+
+[tasks.run-pipeline]
+description = "Trigger a pipeline execution and wait for it to finish. Usage: mise run run-pipeline <stage> <pipeline>"
+run = """
+set -euo pipefail
+arn="arn:aws:states:{{cookiecutter.aws_region}}:{{cookiecutter.aws_account_id}}:stateMachine:{{cookiecutter.project_name}}_{{cookiecutter.domain_name}}_{% raw %}{{arg(name='stage')}}_{{arg(name='pipeline')}}{% endraw %}"
+exec_arn=$(aws stepfunctions start-execution --state-machine-arn "$arn" --input '{}' --query executionArn --output text)
+echo "Triggered: $exec_arn"
+echo "Console: https://{{cookiecutter.aws_region}}.console.aws.amazon.com/states/home?region={{cookiecutter.aws_region}}#/v2/executions/details/$exec_arn"
+while :; do
+  status=$(aws stepfunctions describe-execution --execution-arn "$exec_arn" --query status --output text)
+  [ "$status" != "RUNNING" ] && break
+  sleep 60
+done
+echo "Final status: $status"
+[ "$status" = "SUCCEEDED" ] || exit 1
+"""

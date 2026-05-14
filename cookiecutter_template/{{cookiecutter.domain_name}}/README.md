@@ -41,7 +41,7 @@ terraform workspace new dev    # or: terraform workspace select dev
 terraform apply
 ```
 
-Once the apply succeeds, trigger the pipeline manually from the AWS Step Functions console (state machine name: `{{cookiecutter.project_name}}_{{cookiecutter.domain_name}}_dev_{{cookiecutter.pipeline_name}}`) or wait for the schedule.
+Once the apply succeeds, trigger the pipeline with `mise run run-pipeline dev {{cookiecutter.pipeline_name}}` (waits for completion and exits non-zero on failure), or fire it from the AWS Step Functions console (state machine name: `{{cookiecutter.project_name}}_{{cookiecutter.domain_name}}_dev_{{cookiecutter.pipeline_name}}`), or wait for the schedule.
 
 ## Layout
 
@@ -71,6 +71,7 @@ Each pipeline lives under `iac/<pipeline_name>/`. Add more by declaring a siblin
 ## Day-to-day operations
 
 - **Deploy a change**: `mise run plan <stage>` to preview, then `mise run deploy <stage>` to apply (both wrap init + workspace select/new). Or `cd iac && terraform plan && terraform apply` from the right workspace if you prefer to drive terraform yourself.
+- **Trigger a pipeline manually**: `mise run run-pipeline <stage> <pipeline>` — starts an execution, polls until it finishes, exits non-zero on failure. The console URL is printed up-front if you want to follow along live.
 - **Add a new task**: create `iac/<pipeline>/<task>/code/main.py`, add an entry to `tasks_configuration` in the pipeline's `.tf`, AND add a state in `orchestration_configuration.tftpl.json` (forgetting the third one is the classic mistake). Or use `/new-task` (see below).
 - **Add a new pipeline**: declare `iac/pipeline_<name>.tf` and create `iac/<name>/`. Or use `/new-pipeline`.
 - **Document a table**: drop a YAML under `iac/<pipeline>/<task>/code/tables_configuration/<db>.<table>.yaml`. The SDK applies it to Glue (table description + column comments) on every successful ingestion.
