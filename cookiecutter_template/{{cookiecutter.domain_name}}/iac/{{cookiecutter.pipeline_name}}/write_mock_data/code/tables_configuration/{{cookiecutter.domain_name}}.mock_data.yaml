@@ -1,0 +1,8 @@
+description: "Mock dataset produced by the starter pipeline — replace with your real table description."
+schema:
+  id:
+    description: "Row identifier."
+  name:
+    description: "Human-readable label."
+  value:
+    description: "Sample numeric metric."

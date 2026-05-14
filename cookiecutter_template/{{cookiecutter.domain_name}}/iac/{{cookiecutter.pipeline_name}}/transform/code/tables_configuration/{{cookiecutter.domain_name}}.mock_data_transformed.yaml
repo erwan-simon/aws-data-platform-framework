@@ -1,0 +1,8 @@
+description: "Mock dataset with `value` doubled — output of the starter SQL transform task."
+schema:
+  id:
+    description: "Row identifier, carried from the input table."
+  name:
+    description: "Human-readable label, carried from the input table."
+  doubled_value:
+    description: "Input `value` multiplied by 2."
