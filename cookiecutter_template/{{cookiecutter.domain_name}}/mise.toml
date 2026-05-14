@@ -23,7 +23,7 @@ description = "terraform init + workspace select/new + plan. Usage: mise run pla
 dir = "iac"
 run = [
   "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
-  "terraform workspace select {{arg(name='ws')}} 2>/dev/null || terraform workspace new {{arg(name='ws')}}",
+  "terraform workspace select {% raw %}{{arg(name='ws')}}{% endraw %} 2>/dev/null || terraform workspace new {% raw %}{{arg(name='ws')}}{% endraw %}",
   "terraform plan",
 ]
 
@@ -32,6 +32,6 @@ description = "terraform init + workspace select/new + apply. Usage: mise run de
 dir = "iac"
 run = [
   "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
-  "terraform workspace select {{arg(name='ws')}} 2>/dev/null || terraform workspace new {{arg(name='ws')}}",
+  "terraform workspace select {% raw %}{{arg(name='ws')}}{% endraw %} 2>/dev/null || terraform workspace new {% raw %}{{arg(name='ws')}}{% endraw %}",
   "terraform apply",
 ]
