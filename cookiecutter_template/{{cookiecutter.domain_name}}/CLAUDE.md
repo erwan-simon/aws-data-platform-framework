@@ -9,6 +9,7 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 - `iac/<pipeline_name>/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
 - `iac/<pipeline_name>/<task_name>/requirements.txt` — task-specific Python deps
 - `iac/<pipeline_name>/<task_name>/code/tables_configuration/<db>.<table>.yaml` *(optional)* — per-output-table metadata; the SDK applies the `description:` to the Glue table and the per-column `schema: <col>: description:` as column comments on every successful ingestion. See `docs/pipelines.md` §"Table metadata".
+- `code/<lib_name>/` — Poetry packages shared across tasks. Built and published to the domain's private CodeArtifact repo by `iac/<lib_name>.tf` (the scaffold ships `code/shared_lib/` + `iac/shared_lib.tf` as an example). Tasks consume them via a regular `requirements.txt` pin (`shared-lib>=0.1.0`).
 
 Each pipeline gets its own folder under `iac/` named after the pipeline. The scaffold ships with one pipeline (`{{cookiecutter.pipeline_name}}/`); add more by creating sibling folders and `iac/pipeline_<name>.tf` declarations.
 
@@ -45,4 +46,9 @@ Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platfor
 - **Upgrade the framework**: `/update-framework [vX.Y.Z]` (omit the version to take the latest release). The skill diffs the framework between the pinned and target version, surfaces breaking changes and new opt-in features, submits a plan for approval, then patches `iac/` and runs `terraform plan` to verify.
 
 ## Starting pipeline
-The scaffold ships with a minimal 2-task example: `write_mock_data` (native Python, writes a hardcoded pandas DataFrame) → `transform` (SQL task that reads `mock_data` and writes `mock_data_transformed`). Replace it with your actual pipeline — it's a placeholder, not a contract.
+The scaffold ships with a minimal 2-task example: `write_mock_data` (native Python, writes a hardcoded pandas DataFrame coming from the `shared_lib` example library) → `transform` (SQL task that reads `mock_data` and writes `mock_data_transformed`). Replace it with your actual pipeline — it's a placeholder, not a contract.
+
+## Shared Python libraries
+The scaffold demonstrates how to share code across tasks via the `code/shared_lib/` Poetry package, built and published to the domain's CodeArtifact repo by `iac/shared_lib.tf`. The `write_mock_data` task imports from it (`from shared_lib.main import build_mock_dataframe`) and pins `shared-lib>=0.1.0` in its `requirements.txt`. When you bump the library's version in `code/shared_lib/pyproject.toml`, the `local.shared_lib_version` in `iac/shared_lib.tf` (read by regex from the pyproject) feeds the task's `additional_rebuild_trigger`, forcing the image to rebuild on the next apply. Delete `code/shared_lib/`, `iac/shared_lib.tf`, the `additional_rebuild_trigger` block, the `depends_on`, and the `shared-lib>=...` line if you don't need a private library.
+
+**Poetry is required on the machine running `terraform apply`** as long as any `code/<lib>/` example is wired in (the external TF module calls `poetry build` to produce the wheel). Removing every shared library wiring drops the Poetry prerequisite.

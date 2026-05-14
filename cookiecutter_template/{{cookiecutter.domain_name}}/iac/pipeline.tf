@@ -20,6 +20,11 @@ module "pipeline" {
           "ingestion_mode" : "overwrite"
         }
       }
+      # Rebuilds the task image when the shared library version bumps — keep this in sync
+      # with the version pinned in this task's requirements.txt.
+      "additional_rebuild_trigger" : {
+        "shared_lib_version" : local.shared_lib_version
+      }
     },
     "transform" : {
       "type" : "sql",
@@ -38,4 +43,8 @@ module "pipeline" {
   }
   orchestration_configuration_template_file_path = "${path.root}/{{cookiecutter.pipeline_name}}/orchestration_configuration.tftpl.json"
   role_to_assume_arn                             = var.role_to_assume_arn
+
+  # Ensures the shared library wheel is published to CodeArtifact before the task image is
+  # built (the build runs `pip install shared-lib` from that repo).
+  depends_on = [module.shared_lib_deploy]
 }

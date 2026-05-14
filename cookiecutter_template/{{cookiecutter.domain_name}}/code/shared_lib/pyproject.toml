@@ -1,0 +1,12 @@
+[tool.poetry]
+name = "shared_lib"
+version = "0.1.0"
+description = "Example shared Python library for the {{cookiecutter.domain_name}} domain. Rename/extend/delete as needed."
+authors = ["{{cookiecutter.domain_name}} team"]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

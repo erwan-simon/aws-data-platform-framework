@@ -17,6 +17,7 @@ This repo provisions one domain (`{{cookiecutter.domain_name}}`) under project `
 - Terraform ≥ 1.5, AWS CLI configured against account `{{cookiecutter.aws_account_id}}` in `{{cookiecutter.aws_region}}`.
 - A VPC tagged `Name = {{cookiecutter.project_name}}_network_platform_prod` with `Tier`-tagged subnets (Public/Private). The companion [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) repo provisions one out of the box.
 - The deploying IAM principal must be a Lake Formation admin in the account.
+- **[Poetry](https://python-poetry.org/)** on the machine running `terraform apply` — only required because the scaffold ships an example private Python library (`code/shared_lib/`) built and published to CodeArtifact at apply time. Remove the example (see "Shared Python libraries" below) if you don't need a private library and you can drop the Poetry dependency too.
 {% if cookiecutter.terraform_backend_bucket_name %}- The S3 bucket `{{cookiecutter.terraform_backend_bucket_name}}` for Terraform state must already exist.
 {% else %}- No remote state bucket configured — Terraform state lives locally under `iac/terraform.tfstate.d/`. Move to S3 before going to production.
 {% endif %}
@@ -36,9 +37,14 @@ Once the apply succeeds, trigger the pipeline manually from the AWS Step Functio
 
 ```
 .
+├── code/
+│   └── shared_lib/                            # example Poetry library shared across tasks
+│       ├── pyproject.toml                     # version is read by iac/shared_lib.tf
+│       └── shared_lib/                        # Python package; imported by tasks as `shared_lib`
 ├── iac/
 │   ├── domain.tf                              # domain_factory call
 │   ├── pipeline.tf                            # pipeline_factory call
+│   ├── shared_lib.tf                          # builds + publishes code/shared_lib to CodeArtifact
 │   ├── locals.tf, variables.tf, terraform.tf  # supporting TF
 │   └── {{cookiecutter.pipeline_name}}/        # one folder per pipeline
 │       ├── orchestration_configuration.tftpl.json   # Step Functions state machine
@@ -58,6 +64,19 @@ Each pipeline lives under `iac/<pipeline_name>/`. Add more by declaring a siblin
 - **Add a new task**: create `iac/<pipeline>/<task>/code/main.py`, add an entry to `tasks_configuration` in the pipeline's `.tf`, AND add a state in `orchestration_configuration.tftpl.json` (forgetting the third one is the classic mistake). Or use `/new-task` (see below).
 - **Add a new pipeline**: declare `iac/pipeline_<name>.tf` and create `iac/<name>/`. Or use `/new-pipeline`.
 - **Document a table**: drop a YAML under `iac/<pipeline>/<task>/code/tables_configuration/<db>.<table>.yaml`. The SDK applies it to Glue (table description + column comments) on every successful ingestion.
+- **Share code across tasks**: add functions to `code/shared_lib/` (bump the version in its `pyproject.toml`), then `import` from `shared_lib` in any task. The scaffold wires this end-to-end in `write_mock_data`. Add a new library with `code/<lib_name>/` + `iac/<lib_name>.tf` mirroring the `shared_lib` pattern. Requires Poetry on the apply machine — see Prerequisites.
+
+### Shared Python libraries
+
+The scaffold ships `code/shared_lib/` as an example: a tiny Poetry package built and pushed to the domain's CodeArtifact repo by `iac/shared_lib.tf` on every `terraform apply`. Tasks pin it like any other dependency (`shared-lib>=0.1.0` in their `requirements.txt`) and import from `shared_lib`. The library's version (`pyproject.toml`) feeds `local.shared_lib_version` and the task's `additional_rebuild_trigger`, so bumping the version automatically rebuilds the consuming task images on the next apply.
+
+**Removing the example** if you don't need a private library:
+- delete `code/shared_lib/` and `iac/shared_lib.tf`
+- remove the `shared-lib>=0.1.0` line from `iac/{{cookiecutter.pipeline_name}}/write_mock_data/requirements.txt`
+- remove the `additional_rebuild_trigger` block and the `depends_on = [module.shared_lib_deploy]` line from `iac/pipeline.tf`
+- revert `iac/{{cookiecutter.pipeline_name}}/write_mock_data/code/main.py` to build the DataFrame inline instead of importing `shared_lib`
+
+Once these are gone, Poetry is no longer needed at apply time.
 - **Upgrade the framework**: bump `?ref=` in `iac/domain.tf` + `iac/pipeline.tf` to a new release tag. Or use `/update-framework`.
 
 For the full task-authoring guide, after a first `terraform init`, read `iac/.terraform/modules/domain/docs/pipelines.md` (canonical, pinned to your framework version). Fallback online: [`docs/pipelines.md`](https://github.com/erwan-simon/aws-data-platform-framework/blob/prod/docs/pipelines.md).
