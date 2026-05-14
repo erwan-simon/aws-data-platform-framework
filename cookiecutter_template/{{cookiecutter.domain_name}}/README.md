@@ -70,7 +70,7 @@ Each pipeline lives under `iac/<pipeline_name>/`. Add more by declaring a siblin
 
 ## Day-to-day operations
 
-- **Deploy a change**: `mise run deploy <stage>` (init + workspace select/new + apply), or `cd iac && terraform plan && terraform apply` from the right workspace if you prefer to drive terraform yourself.
+- **Deploy a change**: `mise run plan <stage>` to preview, then `mise run deploy <stage>` to apply (both wrap init + workspace select/new). Or `cd iac && terraform plan && terraform apply` from the right workspace if you prefer to drive terraform yourself.
 - **Add a new task**: create `iac/<pipeline>/<task>/code/main.py`, add an entry to `tasks_configuration` in the pipeline's `.tf`, AND add a state in `orchestration_configuration.tftpl.json` (forgetting the third one is the classic mistake). Or use `/new-task` (see below).
 - **Add a new pipeline**: declare `iac/pipeline_<name>.tf` and create `iac/<name>/`. Or use `/new-pipeline`.
 - **Document a table**: drop a YAML under `iac/<pipeline>/<task>/code/tables_configuration/<db>.<table>.yaml`. The SDK applies it to Glue (table description + column comments) on every successful ingestion.
