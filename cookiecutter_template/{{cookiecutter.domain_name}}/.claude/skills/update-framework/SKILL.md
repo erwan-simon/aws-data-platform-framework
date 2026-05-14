@@ -20,7 +20,7 @@ Both surfaces must be diffed.
 
 ## Procedure
 
-0. **Working tree must be clean.** Run `git status --porcelain`. If the output is non-empty, **stop immediately** and tell the user to commit (or stash) before re-running the skill. Rationale: this skill edits both `iac/*.tf` and `iac/pipeline_tasks/*/code/main.py`; mixing those edits with unrelated in-flight changes makes the bump impossible to review or revert cleanly. Do not offer to `git stash` on behalf of the user — let them decide.
+0. **Working tree must be clean.** Run `git status --porcelain`. If the output is non-empty, **stop immediately** and tell the user to commit (or stash) before re-running the skill. Rationale: this skill edits both `iac/*.tf` and `iac/<pipeline>/*/code/main.py`; mixing those edits with unrelated in-flight changes makes the bump impossible to review or revert cleanly. Do not offer to `git stash` on behalf of the user — let them decide.
 
 1. **Resolve current version.** Grep `?ref=` in `iac/domain.tf` and `iac/pipeline.tf`. They must agree — if not, stop and report. Save as `CURRENT`.
 
@@ -102,7 +102,7 @@ Both surfaces must be diffed.
     terraform -chdir=iac init -upgrade
     terraform -chdir=iac plan
     ```
-    Summarize: resource churn, errors, unexpected destroy/replace. Map any error back to a bucket-(A) finding and propose a fix. The SDK side cannot be validated locally — flag explicitly that runtime-only failures (a renamed `job.x` method) only surface at task execution time, so the user should sanity-check each `pipeline_tasks/*/code/main.py` after the bump.
+    Summarize: resource churn, errors, unexpected destroy/replace. Map any error back to a bucket-(A) finding and propose a fix. The SDK side cannot be validated locally — flag explicitly that runtime-only failures (a renamed `job.x` method) only surface at task execution time, so the user should sanity-check each `<pipeline>/*/code/main.py` after the bump.
 
 11. **Clean up.** `rm -rf "$FW_DIR"`.
 

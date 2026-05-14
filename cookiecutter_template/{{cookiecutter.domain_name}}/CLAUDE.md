@@ -5,9 +5,11 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 ## Layout
 - `iac/domain.tf` — provisions the domain (S3, Glue DB, IAM, Lake Formation, …)
 - `iac/pipeline.tf` — declares the Step Functions pipeline; `tasks_configuration` is the canonical list of tasks
-- `iac/pipeline_tasks/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which)
-- `iac/pipeline_tasks/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
-- `iac/pipeline_tasks/<task_name>/requirements.txt` — task-specific Python deps
+- `iac/<pipeline_name>/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which); one per pipeline
+- `iac/<pipeline_name>/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
+- `iac/<pipeline_name>/<task_name>/requirements.txt` — task-specific Python deps
+
+Each pipeline gets its own folder under `iac/` named after the pipeline. The scaffold ships with one pipeline (`{{cookiecutter.pipeline_name}}/`); add more by creating sibling folders and `iac/pipeline_<name>.tf` declarations.
 
 ## Framework docs
 
@@ -37,6 +39,7 @@ Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platfor
 - **Remove a task**: delete its entry in `tasks_configuration`, its state in the orchestration JSON, and its folder.
 - **Change the trigger**: edit `trigger` in `pipeline.tf` (schedule cron, EventBridge pattern, or manual invocation).
 - **Apply**: `cd iac && terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %} && terraform workspace select <stage> && terraform apply`.
+- **Add a pipeline**: `/new-pipeline [name]` — scaffolds `iac/pipeline_<name>.tf` + `iac/<name>/` (orchestration template + optional placeholder task), interactively.
 - **Upgrade the framework**: `/update-framework [vX.Y.Z]` (omit the version to take the latest release). The skill diffs the framework between the pinned and target version, surfaces breaking changes and new opt-in features, submits a plan for approval, then patches `iac/` and runs `terraform plan` to verify.
 
 ## Starting pipeline

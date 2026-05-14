@@ -11,7 +11,7 @@ module "pipeline" {
   tasks_configuration = {
     "write_mock_data" : {
       "type" : "python",
-      "path" : "pipeline_tasks/write_mock_data",
+      "path" : "{{cookiecutter.pipeline_name}}/write_mock_data",
       "infra_type" : "ECS",
       "infra_config" : {},
       "input_tables" : [],
@@ -23,7 +23,7 @@ module "pipeline" {
     },
     "transform" : {
       "type" : "sql",
-      "path" : "pipeline_tasks/transform",
+      "path" : "{{cookiecutter.pipeline_name}}/transform",
       "infra_type" : "ECS",
       "infra_config" : {},
       "input_tables" : [
@@ -36,6 +36,6 @@ module "pipeline" {
       }
     }
   }
-  orchestration_configuration_template_file_path = "${path.root}/pipeline_tasks/orchestration_configuration.tftpl.json"
+  orchestration_configuration_template_file_path = "${path.root}/{{cookiecutter.pipeline_name}}/orchestration_configuration.tftpl.json"
   role_to_assume_arn                             = var.role_to_assume_arn
 }
