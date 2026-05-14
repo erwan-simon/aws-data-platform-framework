@@ -150,10 +150,12 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 
 ## Requirements
 
+Tool versions are pinned in [`mise.toml`](mise.toml). With [mise](https://mise.jdx.dev/) installed (`brew install mise` or `curl https://mise.run | sh`), `mise install` gets you the exact `terraform`, `python`, `poetry`, and `awscli` versions this repo expects. Without mise, install the same versions manually.
+
 - AWS account, AWS CLI configured
-- Terraform with the AWS provider `>= 5.60.0, < 6.14.0`
-- Python `~3.13` and Poetry (only if you build the SDK from source)
-- Docker (for local task execution and image builds)
+- Terraform (version in `mise.toml`); AWS provider `>= 5.60.0, < 6.14.0`
+- Python and Poetry (versions in `mise.toml`) — needed to build the SDK from source and the integration-test fixture library
+- **Docker** running locally — for local task execution and `terraform apply`-time image builds. Not managed by mise; install Docker Desktop / OrbStack / colima separately.
 - A Terraform state backend — either an existing S3 bucket (set `terraform_backend_bucket_name` at scaffold time), or none (leave the prompt empty to use a local backend)
 - A VPC tagged `Name = {project_name}_network_platform_prod` with `Tier`-tagged subnets — see [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) for a ready-made stack (NAT gateway optional via `nat_gateways_count`)
 

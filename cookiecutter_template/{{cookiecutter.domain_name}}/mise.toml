@@ -1,0 +1,15 @@
+# Tool versions for deploying the {{cookiecutter.domain_name}} domain.
+#
+# Install all of them with: `mise install` (https://mise.jdx.dev/).
+#
+# Docker is not managed here — install Docker Desktop / OrbStack / colima separately,
+# the daemon is needed at terraform apply time to build task images and push them to ECR.
+#
+# `poetry` is only needed because the scaffold ships an example private library
+# (`code/shared_lib/`) built and published at apply time. Remove it from this file if
+# you delete the shared_lib example (see README §"Shared Python libraries").
+
+[tools]
+terraform = "1.10.5"
+awscli    = "2.22.0"
+poetry    = "1.8.4"

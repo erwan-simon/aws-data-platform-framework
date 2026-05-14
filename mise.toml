@@ -1,0 +1,13 @@
+# Tool versions for working on the framework itself: developing the datalake_sdk,
+# running unit tests, and deploying the integration_tests/ fixture.
+#
+# Install all of them with: `mise install` (https://mise.jdx.dev/).
+#
+# Docker is not managed here — install Docker Desktop / OrbStack / colima separately,
+# the daemon is needed by `build_and_upload_image_to_ecr` at terraform apply time.
+
+[tools]
+terraform = "1.10.5"
+python    = "3.13.1"
+poetry    = "1.8.4"
+awscli    = "2.22.0"

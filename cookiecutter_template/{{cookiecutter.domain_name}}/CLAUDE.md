@@ -13,6 +13,9 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 
 Each pipeline gets its own folder under `iac/` named after the pipeline. The scaffold ships with one pipeline (`{{cookiecutter.pipeline_name}}/`); add more by creating sibling folders and `iac/pipeline_<name>.tf` declarations.
 
+## Tooling
+Tool versions (`terraform`, `awscli`, `poetry`) are pinned in `mise.toml` at the repo root. With [mise](https://mise.jdx.dev/) installed, the right versions activate automatically when you cd into the repo. Docker is *not* managed by mise (system daemon) but is required at `terraform apply` time to build task images.
+
 ## Framework docs
 
 After `terraform init`, the framework repo is cached locally — that's the canonical reference (matches the deployed `dataplatform_version`). The `domain` segment in the paths below is the Terraform module label (`module "domain" { ... }` in `domain.tf`); if you renamed it, substitute accordingly.

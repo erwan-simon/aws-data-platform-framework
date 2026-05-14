@@ -21,12 +21,21 @@ source pinned to a release tag — the latter is the production pattern describe
 
 ### Accounts and tooling
 
+Tool versions for working on this repo are pinned in [`mise.toml`](../mise.toml). With
+[mise](https://mise.jdx.dev/) installed (`brew install mise` or `curl https://mise.run | sh`),
+`mise install` gives you the exact `terraform`, `python`, `poetry`, and `awscli` versions.
+Scaffolded domains have their own [`mise.toml`](../cookiecutter_template/{{cookiecutter.domain_name}}/mise.toml)
+with a smaller toolset (no Python; Poetry only if the `shared_lib` example is kept). Without
+mise, install the same versions manually.
+
 - AWS account with rights to create S3, Glue, Lake Formation, IAM, ECS, EMR Serverless, Step
   Functions, Lambda, EventBridge, CloudWatch, ECR, CodeArtifact, Bedrock resources.
-- AWS CLI configured.
-- Terraform with the AWS provider `>= 5.60.0, < 6.14.0`.
-- Docker (Terraform invokes it locally to build task and sandbox images).
-- Python `~3.13` and Poetry (only if you build / publish the SDK manually).
+- AWS CLI configured (version pinned in `mise.toml`).
+- Terraform (version pinned in `mise.toml`); AWS provider `>= 5.60.0, < 6.14.0`.
+- **Docker** running locally — Terraform invokes it to build task and sandbox images. Not
+  managed by mise; install Docker Desktop / OrbStack / colima separately.
+- Python and Poetry (versions pinned in `mise.toml`) — needed to build/publish the SDK
+  manually and for any domain that ships a private Python library (`code/<lib>/` pattern).
 
 ### Pre-existing infrastructure
 

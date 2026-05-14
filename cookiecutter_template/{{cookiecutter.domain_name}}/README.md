@@ -14,7 +14,10 @@ This repo provisions one domain (`{{cookiecutter.domain_name}}`) under project `
 
 ## Prerequisites
 
-- Terraform ≥ 1.5, AWS CLI configured against account `{{cookiecutter.aws_account_id}}` in `{{cookiecutter.aws_region}}`.
+Tool versions are pinned in [`mise.toml`](mise.toml). With [mise](https://mise.jdx.dev/) installed (`brew install mise` or `curl https://mise.run | sh`), run `mise install` from the repo root to get the exact `terraform`, `awscli`, and `poetry` versions the scaffold was tested with. Without mise, install the same versions manually.
+
+- Terraform + AWS CLI (versions in `mise.toml`), AWS CLI configured against account `{{cookiecutter.aws_account_id}}` in `{{cookiecutter.aws_region}}`.
+- **Docker** running locally — needed at `terraform apply` time to build task images and push them to ECR. Not managed by mise; install Docker Desktop / OrbStack / colima separately.
 - A VPC tagged `Name = {{cookiecutter.project_name}}_network_platform_prod` with `Tier`-tagged subnets (Public/Private). The companion [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) repo provisions one out of the box.
 - The deploying IAM principal must be a Lake Formation admin in the account.
 - **[Poetry](https://python-poetry.org/)** on the machine running `terraform apply` — only required because the scaffold ships an example private Python library (`code/shared_lib/`) built and published to CodeArtifact at apply time. Remove the example (see "Shared Python libraries" below) if you don't need a private library and you can drop the Poetry dependency too.
