@@ -13,6 +13,9 @@
 terraform = "1.10.5"
 awscli    = "2.22.0"
 poetry    = "1.8.4"
+# datalake_sdk CLI (`datalake_sdk --help`), installed by mise via pipx — pinned to the same
+# platform version as the Terraform module sources. Available on PATH after `mise install`.
+"pipx:datalake-sdk" = "git+https://github.com/erwan-simon/aws-data-platform-framework.git@{{cookiecutter.dataplatform_version}}#subdirectory=datalake_sdk"
 
 # `mise run plan|deploy <workspace>` runs init, selects/creates the workspace, and then
 # plan or apply — with the pinned terraform version, regardless of whether mise's shell
