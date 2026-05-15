@@ -39,7 +39,7 @@ run = [
 [tasks.run-pipeline]
 description = "Trigger a pipeline execution and wait for it to finish. Usage: mise run run-pipeline <stage> <pipeline>"
 run = """
-set -euo pipefail
+set -eu
 arn="arn:aws:states:{{cookiecutter.aws_region}}:{{cookiecutter.aws_account_id}}:stateMachine:{{cookiecutter.project_name}}_{{cookiecutter.domain_name}}_{% raw %}{{arg(name='stage')}}_{{arg(name='pipeline')}}{% endraw %}"
 exec_arn=$(aws stepfunctions start-execution --state-machine-arn "$arn" --input '{}' --query executionArn --output text)
 echo "Triggered: $exec_arn"

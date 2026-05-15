@@ -31,7 +31,7 @@ run = "bash scripts/run_integration_tests.sh integration_tests/iac datalake_test
 [tasks.integration-scaffold]
 description = "Render the cookiecutter scaffold and exercise it through its own mise tasks. Usage: mise run integration-scaffold <stage>"
 run = """
-set -euo pipefail
+set -eu
 bash scripts/generate_scaffold.sh
 cd _integration_test/datalake_scaffold
 mise trust
