@@ -33,7 +33,7 @@ dir = "iac"
 run = [
   "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
   "terraform workspace select {% raw %}{{arg(name='ws')}}{% endraw %} 2>/dev/null || terraform workspace new {% raw %}{{arg(name='ws')}}{% endraw %}",
-  "terraform apply",
+  "terraform apply --auto-approve",
 ]
 
 [tasks.run-pipeline]
