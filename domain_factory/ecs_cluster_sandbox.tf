@@ -1,5 +1,6 @@
 module "ecs_cluster_sandbox" {
-  source = "../pipeline_factory/modules/ecs_factory/"
+  source     = "../pipeline_factory/modules/ecs_factory/"
+  depends_on = [terraform_data.docker_validation]
   domain_object = {
     project_name                     = var.project_name
     domain_name                      = var.domain_name
