@@ -29,8 +29,13 @@ description = "Deploy + run the in-tree integration_tests/ fixture (5 tasks)"
 run = "bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests"
 
 [tasks.integration-scaffold]
-description = "Generate the cookiecutter scaffold and run its integration test"
-run = [
-  "bash scripts/generate_scaffold.sh",
-  "bash scripts/run_integration_tests.sh _integration_test/datalake_scaffold/iac datalake_scaffold main",
-]
+description = "Render the cookiecutter scaffold and exercise it through its own mise tasks. Usage: mise run integration-scaffold <stage>"
+run = """
+set -euo pipefail
+bash scripts/generate_scaffold.sh
+cd _integration_test/datalake_scaffold
+mise trust
+mise install
+mise run deploy "{{arg(name='stage')}}"
+mise run run-pipeline "{{arg(name='stage')}}" main
+"""

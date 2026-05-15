@@ -56,7 +56,15 @@ integration_tests_full_fixture:
 
 integration_tests_scaffold:
   extends: .integration_tests_base
+  variables:
+    # Mise pulls some python builds whose GitHub artifact attestations aren't published.
+    MISE_PYTHON_GITHUB_ATTESTATIONS: "false"
+  before_script:
+    - !reference [.integration_tests_base, before_script]
+    # Install mise so we can exercise the rendered scaffold through its own mise tasks.
+    - curl https://mise.run | sh
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise trust
   script:
     - pip install cookiecutter
-    - bash scripts/generate_scaffold.sh
-    - bash scripts/run_integration_tests.sh _integration_test/datalake_scaffold/iac datalake_scaffold main
+    - mise run integration-scaffold "$STAGE_NAME"
