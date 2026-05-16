@@ -30,6 +30,10 @@ rm -rf temp_build/${build_subdir}
 mkdir -p temp_build/${build_subdir}
 cp -rf $absolute_code_path/* temp_build/${build_subdir} || (echo "Could not copy task code from $absolute_code_path/*" && exit 1)
 
+# SQL tasks don't need a requirements.txt — the SDK is already in the base image.
+# Stub an empty one so the Dockerfile's COPY + pip install stay a no-op without branching.
+[ -f "temp_build/${build_subdir}/requirements.txt" ] || touch "temp_build/${build_subdir}/requirements.txt"
+
 if [ "$package_datalake_sdk" = "true" ];
 then
     datalake_sdk_path="../../../datalake_sdk"

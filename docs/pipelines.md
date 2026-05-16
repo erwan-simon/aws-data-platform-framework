@@ -30,15 +30,15 @@ my_task/
 │   ├── main.py             # OR main.sql for SQL tasks
 │   └── tables_configuration/
 │       └── my_db.my_table.yaml      # optional metadata
-└── requirements.txt        # required (may be empty); pip-installed into the task image
+└── requirements.txt        # Python tasks only; pip-installed into the task image. Omit for SQL tasks.
 ```
 
 The `path` field in `tasks_configuration` points at this folder (the parent of `code/`).
 At deploy time, `pipeline_factory`:
 
 1. Detects whether the task is SQL by checking for `code/main.sql` (drives the `IS_SQL_JOB` env var).
-2. Builds a Docker image FROM the domain sandbox image, installs `requirements.txt`, copies
-   `code/` in.
+2. Builds a Docker image FROM the domain sandbox image, installs `requirements.txt` if present
+   (SQL tasks skip this — the SDK is already in the base image), copies `code/` in.
 3. Pushes the image to a per-task ECR repository.
 4. Wires up an ECS task definition (or EMR Serverless application) referencing that image.
 

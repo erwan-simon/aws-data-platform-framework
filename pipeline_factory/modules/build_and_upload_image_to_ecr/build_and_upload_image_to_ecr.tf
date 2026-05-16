@@ -11,7 +11,7 @@ locals {
         !strcontains(file_path, directory_pattern_to_ignore)
       ]) # ignoring path if it contains any of the irrelevant directory
     })
-    requirements_file_hash = filemd5("${var.source_code_path}/requirements.txt")
+    requirements_file_hash = fileexists("${var.source_code_path}/requirements.txt") ? filemd5("${var.source_code_path}/requirements.txt") : "absent"
     dockerfile_hash        = filemd5("${var.dockerfile_path}/Dockerfile"),
     base_image_uri         = var.base_image_uri,
   })
