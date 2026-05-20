@@ -9,7 +9,8 @@ module "pipeline" {
     "argument" : "cron(15 1 * * ? *)",
     "parameters" : jsonencode({
       "hello" : "world!"
-    })
+    }),
+    "start_disabled" : true,
   }
   tasks_configuration = {
     "test_native_write" : {

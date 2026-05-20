@@ -33,9 +33,9 @@ def delete_table(logger: logging.Logger, boto_session: boto3.session.Session,
     help="Database name")
 def command_line_delete_table(
         ctx, database_name: str, table_name: str):
-    click.confirm(f'You are about to delete the {table_name} from the ' +
-                  f'{database_name} database for the {ctx.obj.stage_name},' +
-                  ' all its tables and all its data. Are you SURE you ' +
+    click.confirm(f'You are about to delete the {table_name} table from the ' +
+                  f'{database_name} database for the {ctx.obj.stage_name} ' +
+                  ' and all its data. Are you SURE you ' +
                   'want to do this?',
                   abort=True)
     delete_table(ctx.obj.logger, ctx.obj.boto_session, ctx.obj.project_name,

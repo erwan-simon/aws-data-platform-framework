@@ -1,6 +1,7 @@
 module "emr_serverless_application_sandbox" {
-  count  = var.skip_emr_serverless_sandbox_creation ? 0 : 1
-  source = "../pipeline_factory/modules/emr_factory/"
+  count      = var.skip_emr_serverless_sandbox_creation ? 0 : 1
+  source     = "../pipeline_factory/modules/emr_factory/"
+  depends_on = [terraform_data.docker_validation]
   domain_object = {
     project_name                     = var.project_name
     domain_name                      = var.domain_name

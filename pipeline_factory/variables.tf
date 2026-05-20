@@ -24,9 +24,10 @@ variable "tasks_configuration" {
 
 variable "trigger" {
   type = object({
-    type       = string
-    argument   = string
-    parameters = optional(string, "{}")
+    type           = string
+    argument       = string
+    parameters     = optional(string, "{}")
+    start_disabled = optional(bool, false)
   })
   description = "Configuration of the trigger of the pipeline"
   default = {

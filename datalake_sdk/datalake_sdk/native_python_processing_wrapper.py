@@ -1,9 +1,7 @@
 import os
-import json
 import time
 from dataclasses import dataclass
 import uuid
-import boto3
 import pandas as pd
 import awswrangler as wr
 from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
@@ -89,6 +87,7 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
         override_ingestion_mode: str = None,
         force_maintenance: bool = False,
     ):
+        self._validate_output_schema(full_table_name, dataframe)
         final_ingestion_mode = (
             override_ingestion_mode
             if override_ingestion_mode
@@ -157,7 +156,9 @@ class NativePythonProcessingWrapper(BaseProcessingWrapper):
             self.ingest(full_table_name, dataframe, recursive_counter + 1)
         self.record_upsert_keys(full_table_name)
         self.record_producer_job(full_table_name)
-        if not wr.catalog.does_table_exist(database=long_database_name, table=table_name):
+        if not wr.catalog.does_table_exist(
+            database=long_database_name, table=table_name
+        ):
             return
         wr.catalog.upsert_table_parameters(
             database=long_database_name,

@@ -11,12 +11,14 @@ locals {
         !strcontains(file_path, directory_pattern_to_ignore)
       ]) # ignoring path if it contains any of the irrelevant directory
     })
-    requirements_file_hash = filemd5("${var.source_code_path}/requirements.txt")
+    requirements_file_hash = fileexists("${var.source_code_path}/requirements.txt") ? filemd5("${var.source_code_path}/requirements.txt") : "absent"
     dockerfile_hash        = filemd5("${var.dockerfile_path}/Dockerfile"),
     base_image_uri         = var.base_image_uri,
   })
-  # AWS lambda does not detect image change if tag is the same ('latest' for exemple)
-  image_tag           = sha1(jsonencode(local.total_rebuild_trigger))
+  # AWS lambda does not detect image change if tag is the same ('latest' for exemple).
+  # The `runtime-` prefix lets the ECR lifecycle policy target runtime images specifically
+  # without sweeping the `:buildcache` tag — see ecr.tf for the matching rule.
+  image_tag           = "runtime-${sha1(jsonencode(local.total_rebuild_trigger))}"
   cleaned_source_path = trimsuffix(var.source_code_path, "/")
 }
 
@@ -47,7 +49,9 @@ resource "null_resource" "image_build_and_upload" {
     ])
     working_dir = path.module
   }
-  triggers   = local.total_rebuild_trigger
+  # `image_tag` is included so a change to the tag scheme itself (e.g. the `runtime-` prefix
+  # above) forces a rebuild — `total_rebuild_trigger` alone doesn't see derivation tweaks.
+  triggers   = merge(local.total_rebuild_trigger, { image_tag = local.image_tag })
   depends_on = [aws_ecr_repository.main]
 }
 

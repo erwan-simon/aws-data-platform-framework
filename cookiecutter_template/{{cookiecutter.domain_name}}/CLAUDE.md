@@ -7,8 +7,8 @@ Domain on the [AWS Data Platform Framework](https://github.com/erwan-simon/aws-d
 - `iac/pipeline.tf` — declares the Step Functions pipeline; `tasks_configuration` is the canonical list of tasks
 - `iac/<pipeline_name>/orchestration_configuration.tftpl.json` — state machine wiring (which task runs after which); one per pipeline
 - `iac/<pipeline_name>/<task_name>/code/main.py` (or `main.sql`) — task code; Python exposes `def main(job)` returning `{full_table_name: ProcessingResponse}`
-- `iac/<pipeline_name>/<task_name>/requirements.txt` — task-specific Python deps
-- `iac/<pipeline_name>/<task_name>/code/tables_configuration/<db>.<table>.yaml` *(optional)* — per-output-table metadata; the SDK applies the `description:` to the Glue table and the per-column `schema: <col>: description:` as column comments on every successful ingestion. See `docs/pipelines.md` §"Table metadata".
+- `iac/<pipeline_name>/<task_name>/requirements.txt` — task-specific Python deps (Python tasks only; omit for SQL tasks)
+- `iac/<pipeline_name>/<task_name>/code/tables_configuration/<db>.<table>.yaml` *(optional)* — per-output-table metadata. The SDK applies the `description:` to the Glue table and the per-column `schema: <col>: description:` as column comments on every successful ingestion. Adding a `type:` (e.g. `string`, `bigint`, `decimal(10,2)`) plus optional checks (`ge`, `le`, `isin`, `str_matches`, `nullable`, `unique`, …) opts the column into Pandera schema validation before ingest. See `docs/pipelines.md` §"Table metadata" / "Schema validation".
 - `code/<lib_name>/` — Poetry packages shared across tasks. Built and published to the domain's private CodeArtifact repo by `iac/<lib_name>.tf` (the scaffold ships `code/shared_lib/` + `iac/shared_lib.tf` as an example). Tasks consume them via a regular `requirements.txt` pin (`shared-lib>=0.1.0`).
 
 Each pipeline gets its own folder under `iac/` named after the pipeline. The scaffold ships with one pipeline (`{{cookiecutter.pipeline_name}}/`); add more by creating sibling folders and `iac/pipeline_<name>.tf` declarations.

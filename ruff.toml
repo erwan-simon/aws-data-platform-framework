@@ -1,0 +1,7 @@
+# Repo-wide ruff config. The default ruff exclude list already covers .git,
+# .venv, __pycache__, etc. Extra entries below are tools/runtime directories
+# that may exist locally or in CI but contain third-party Python we don't own.
+
+extend-exclude = [
+    ".mise-data",
+]

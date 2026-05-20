@@ -1,0 +1,31 @@
+# Pre-commit hooks that mirror a subset of the CI fast checks. The full security
+# / unit / integration stages still run in CI — these hooks are just there to
+# catch the most common issues before they reach a merge request.
+#
+# Setup: `mise run pre-commit-install` (after `mise install`).
+#
+# All hooks call into `mise run …` so the pinned tool versions in `mise.toml`
+# stay the single source of truth.
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff lint + format (auto-fix)
+        entry: mise run ruff --fix
+        language: system
+        pass_filenames: false
+        types_or: [python]
+
+      - id: gitleaks
+        name: gitleaks secret scan (staged changes)
+        entry: gitleaks protect --staged --verbose --redact
+        language: system
+        pass_filenames: false
+
+      - id: hadolint
+        name: hadolint Dockerfile lint
+        entry: mise run hadolint
+        language: system
+        pass_filenames: false
+        files: (^|/)Dockerfile$

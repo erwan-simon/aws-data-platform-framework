@@ -1,5 +1,4 @@
 # Part of the platform's integration-test fixtures. Useful as a working multi-table example; safe to delete in a real domain.
-import time
 import awswrangler as wr
 from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
 from datalake_sdk.delete_table import delete_table

@@ -8,7 +8,7 @@ variables:
 
 include:
   - project: 'erwan.simon/devops-platform-ci-templates'
-    ref: 'v2.1.0'
+    ref: 'v2.2.0'
     file:
       - 'base.yml'
       - 'docker.yml'
@@ -41,15 +41,20 @@ stages:
     # Mise pulls some python builds whose GitHub artifact attestations aren't published.
     MISE_PYTHON_GITHUB_ATTESTATIONS: "false"
   before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates awscli jq
     - mkdir -p ~/.aws
     - echo "${CI_JOB_JWT_V2}" > /tmp/web_identity_token
     - echo -e "[profile default]\nrole_arn=${GITLAB_ROLE_ARN}\nweb_identity_token_file=/tmp/web_identity_token" > ~/.aws/config
+    # Authenticate mise's GitHub calls so we don't hit the 60-req/h anonymous limit.
+    # Same secret + convention as devops-platform-ci-templates base.yml.
+    - export GITHUB_TOKEN=$(aws secretsmanager get-secret-value --secret-id "${GITHUB_TOKEN_SECRET_NAME}" --output text --query SecretString | jq -r .token)
     # Install mise so the pinned toolchain (terraform/python/poetry/awscli) is used,
     # not whatever ships in the runner image.
     - curl https://mise.run | sh
     - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
     - mise trust
     - mise install
+    # pip-install AFTER mise so boto3 lands in the mise-managed python used by the test scripts.
     - pip install boto3
   needs:
     - init_ecr_token

@@ -87,10 +87,10 @@ TRIAGE_DICT = {"aws.ecs": handle_ecs, "aws.emr-serverless": handle_emr_serverles
 
 def investigate_error_with_datalfred(
     logger, boto_session, project_name: str, domain_name: str, stage_name: str
-):
+) -> str:
     model_size = os.environ["FAILURE_INVESTIGATION_MODEL_SIZE"]
     print_sub_agent_debug = True
-    response = datalfred_main(
+    return datalfred_main(
         logger,
         boto_session,
         project_name,
@@ -98,16 +98,13 @@ def investigate_error_with_datalfred(
         stage_name,
         model_size,
         print_sub_agent_debug,
-        f"Can you tell me why the pipeline of the project {project_name}, "
-        f"the domain {domain_name} and the stage {stage_name} failed ? I don't know precisely "
-        "which one, so find it yourself, but I want only the latest failure cause, dot not "
-        "investigate previous ones. I want to send a slack message with your response so format "
-        "it accordingly, make it short and synthetic, "
-        "formatted in the slack messages format. Precise the date, the pipeline name, the failed "
-        "task name and why it failed. If you identify a fix, describe it briefly. Just respond "
-        "the slack text I need to send, nothing else.",
+        f"The latest pipeline run for project {project_name}, domain {domain_name}, "
+        f"stage {stage_name} just failed. Find the latest failure (ignore previous ones) "
+        "and explain briefly why it failed. If you identify a fix, describe it briefly. "
+        "Respond with a short synthetic paragraph formatted for Slack — no greeting, no "
+        "header, just the analysis text (it will be inlined under a 'Datalfred bug "
+        "analysis:' field in a larger Slack message).",
     )
-    send_slack_message(project_name, response)
 
 
 def main(event: dict, _: dict):
@@ -129,13 +126,14 @@ def main(event: dict, _: dict):
         return
     logger.info(f"Aborting step function execution: {error_message}")
     sfn_client = boto3.client("stepfunctions")
+    slack_message = f"Pipeline failure on {environment_name}:\n{error_message}"
     if os.environ.get("LLM_ENABLED", "true").lower() == "true":
         try:
-            investigate_error_with_datalfred(
+            analysis = investigate_error_with_datalfred(
                 logger, boto3.session.Session(), project_name, domain_name, stage_name
             )
+            slack_message += f"\n\nDatalfred bug analysis: {analysis}"
         except Exception as error:
-            # if the slack integration is not implemented, we do not want this lamnda function to fail
             logger.error(
                 "The datalfred investigation did not seem to work: " + str(error)
             )
@@ -143,6 +141,11 @@ def main(event: dict, _: dict):
         logger.info(
             "LLM module disabled on this domain — skipping datalfred investigation."
         )
+    try:
+        send_slack_message(project_name, slack_message)
+    except Exception as error:
+        # if the slack integration is not implemented, we do not want this lambda function to fail
+        logger.error("Failed to send slack notification: " + str(error))
     # error parameter string size is capped to 256 characters
     try:
         sfn_client.send_task_failure(

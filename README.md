@@ -19,113 +19,89 @@ flowchart LR
 
 ## What you get
 
-- **Domain provisioning, batteries included.** One Terraform module spins up everything a
-  business domain needs: S3 (data + technical), a Glue database, Lake Formation registration,
-  an Athena workgroup, IAM roles, ECR, a private CodeArtifact repository, EMR Studio, a
-  Bedrock inference profile, sandbox base images for ECS and EMR, and a failsafe-shutdown
-  Lambda. All resources are tagged for FinOps tracking.
-- **Pipelines as code.** Declare your tasks in a single Terraform map; the framework builds
-  Docker images, wires up a Step Functions state machine, ECS Fargate or EMR Serverless tasks,
-  EventBridge schedules, IAM, CloudWatch logs, and failure notifications.
-- **Two runtimes, one programming model.** Native Python (Pandas + awswrangler) on ECS Fargate
-  for small-to-medium workloads; PySpark on EMR Serverless for big ones. Same SDK, same task
-  contract — switch runtimes by changing one Terraform field.
-- **Iceberg from day one.** All managed tables are Apache Iceberg → ACID transactions, schema
-  evolution, time travel, partition evolution. Compaction and vacuum run automatically.
-- **Multi-stage by default.** `dev`, `uat`, `prod`, … are isolated via Terraform workspaces.
-  Resource names and database prefixes are derived automatically — no shared state, no
-  copy-paste between environments.
-- **Local–prod parity.** Run any task locally in the exact same Docker image used in
-  production, with a Jupyter notebook attached for iteration.
-- **Optional AI agent.** *Datalfred*, a Bedrock-backed agent, lets you query the lake, debug
-  pipelines, and trigger ingestions in natural language. Disabled per-domain with
-  `enable_llm = false` on the `domain_factory` call — skips Bedrock inference profile creation
-  and stops the failsafe-shutdown Lambda from invoking Datalfred on pipeline failures.
-- **Claude Code, out of the box.** Every scaffolded domain ships with a `CLAUDE.md` that briefs
-  Claude on the framework's conventions, the task contract, and where to find the canonical
-  docs — so an LLM working in your repo writes code that fits, not code that fights the
-  framework. Plus a `/update-framework` skill that diffs your pinned version against any newer
-  release, surfaces breaking changes *and* new opt-in features, and walks you through the
-  upgrade interactively. Upgrading the framework becomes a conversation, not a chore.
+- **Domain provisioning in one Terraform call.** S3, Glue DB, Lake Formation, Athena workgroup,
+  IAM, ECR, CodeArtifact, EMR Studio, Bedrock inference profile, ECS/EMR sandbox images,
+  failsafe-shutdown Lambda. All resources tagged for FinOps.
+- **Pipelines as code.** Declare tasks in a Terraform map; you get a Step Functions state
+  machine over ECS Fargate or EMR Serverless tasks, with EventBridge triggers, IAM, logs, and
+  failure alerts.
+- **Two runtimes, one task contract.** Pandas + awswrangler on ECS Fargate for small/medium
+  jobs, PySpark on EMR Serverless for big ones. Switch by changing one Terraform field.
+- **Iceberg tables.** ACID, schema evolution, time travel, partition evolution. Compaction and
+  vacuum run automatically.
+- **Schema enforcement.** Declare column types and constraints (`ge`, `isin`, `str_matches`,
+  `unique`, …) per output table; the SDK builds a [Pandera](https://pandera.readthedocs.io/)
+  schema from the YAML and validates every DataFrame before writing. Same contract for Python
+  and PySpark.
+- **Multi-stage by Terraform workspaces.** `dev`, `uat`, `prod`, … isolated automatically —
+  resource names and database prefixes derived from the workspace.
+- **Local–prod parity.** Run any task locally in the same image used in production, with a
+  Jupyter notebook attached.
+- **Optional AI agent.** *Datalfred* — a Bedrock-backed agent for querying the lake and
+  triggering ingestions in natural language. Off via `enable_llm = false`.
+- **Claude Code integration.** Every scaffolded domain ships a `CLAUDE.md` plus skills to add
+  tasks (`/new-task`), scaffold pipelines (`/new-pipeline`), and upgrade the framework
+  (`/update-framework`) — Claude does the multi-file edits, the human reviews the diff.
 
 ## How it works
 
-The framework is built around three concepts:
+Step Functions invokes each task with a callback token. The task uses the SDK to ingest data
+into Iceberg tables on S3, registered in the Glue Data Catalog and governed by Lake Formation.
+Athena provides SQL access on top.
 
-- A **domain** is a self-contained business unit. Provisioned by [`domain_factory/`](domain_factory),
-  it owns its S3 buckets, Glue database, IAM, Lake Formation registration, and Athena workgroup.
-- A **pipeline** orchestrates tasks within a domain. Provisioned by
-  [`pipeline_factory/`](pipeline_factory) from a `tasks_configuration` map, it materializes as
-  an AWS Step Functions state machine.
-- A **task** is a unit of work — a Python module or a SQL file — packaged in a Docker image and
-  run on ECS Fargate or EMR Serverless. Tasks read input tables and write output tables through
-  the [`datalake_sdk`](datalake_sdk), which handles ingestion, schema management, and Lake
-  Formation grants.
+| Concept     | What it is                                                                    | Provisioned by                            |
+|-------------|-------------------------------------------------------------------------------|-------------------------------------------|
+| **Domain**  | S3, Glue DB, IAM, Lake Formation, Athena workgroup, sandbox images.           | [`domain_factory/`](domain_factory)       |
+| **Pipeline**| Step Functions workflow over a set of tasks, with triggers and alerts.        | [`pipeline_factory/`](pipeline_factory)   |
+| **Task**    | Python or SQL unit of work on ECS Fargate or EMR Serverless. Reads/writes Iceberg. | `tasks_configuration` map in the pipeline |
+| **Stage**   | Environment (`dev`, `prod`, …) derived from the Terraform workspace.          | Terraform workspace                       |
+| **Iceberg** | On-disk format for every managed table — ACID, schema evolution, time travel. | Automatic                                 |
 
-At runtime, Step Functions invokes each task with a callback token. The task uses the SDK to
-ingest data into Iceberg tables on S3, registered in the Glue Data Catalog and governed by Lake
-Formation. Athena provides SQL access on top.
+Resource names follow `{project_name}_{domain_name}_{stage_name}_…`. Non-prod stages prefix
+database names (`dev_my_db`); `prod` uses the unprefixed name.
 
 ## Quickstart
 
-The fastest way to see the framework in action is to scaffold a domain via
-[`cookiecutter_template/`](cookiecutter_template) — it provisions a complete domain plus a
-minimal 2-task starter pipeline (`write_mock_data` → `transform`) you can rewrite. For a
-broader, feature-exhaustive example, see [`integration_tests/`](integration_tests) (the in-tree
-domain CI runs against).
+Scaffold a domain from [`cookiecutter_template/`](cookiecutter_template) — a minimal 2-task
+starter pipeline (`write_mock_data` → `transform`) you rewrite. For a feature-exhaustive
+example, see [`integration_tests/`](integration_tests).
 
 Prerequisites:
 * an AWS account
-* (optional) an existing S3 bucket for Terraform state — leave the cookiecutter prompt empty to use a local backend instead
-* a VPC tagged `Name = {project_name}_network_platform_prod` (the companion [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) repo provisions one with the right tags, plus an optional NAT gateway via `nat_gateways_count` if you want to keep tasks in private subnets).
-
-Full prerequisites in [`docs/deploying.md`](docs/deploying.md).
+* [mise](https://mise.jdx.dev/) — installs the terraform/awscli/poetry versions pinned in the scaffold
+* a running Docker daemon (Docker Desktop / OrbStack / colima) — needed at `terraform apply` time to build task images
+* (optional) an existing S3 bucket for Terraform state — leave the cookiecutter prompt empty to use a local backend
+* a VPC tagged `Name = {project_name}_network_platform_prod` — see [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) for a ready-made one (NAT gateway optional via `nat_gateways_count`).
 
 1. Install cookiecutter
 ```bash
 pip install cookiecutter
 ```
 
-2. Scaffold a project straight from the repo (interactive — it'll prompt for AWS account, project name, etc.). No need to clone first. Any `key=value` positional argument pre-fills a prompt — e.g. resolve the AWS account id from your shell:
+2. Scaffold a domain (interactive prompts; pre-fill via `key=value` arguments).
 ```bash
 cookiecutter https://github.com/erwan-simon/aws-data-platform-framework \
   --directory cookiecutter_template \
   aws_account_id=$(aws sts get-caller-identity --query Account --output text) \
   aws_region=$(aws configure get region) \
-  dataplatform_version=$(git ls-remote --tags https://github.com/erwan-simon/aws-data-platform-framework | awk -F'/' '{print $NF}' | grep -v '\^{}$' | sort -V | tail -1)
+  dataplatform_version=vX.Y.Z
 ```
+> Resolve the latest framework tag with:
+> `git ls-remote --tags https://github.com/erwan-simon/aws-data-platform-framework | awk -F'/' '{print $NF}' | grep -v '\^{}$' | sort -V | tail -1`
 
 3. Deploy
 ```bash
-cd iac && \
-    terraform init -backend-config=backend.hcl && \
-    terraform workspace new dev && \
-    terraform apply
+cd <domain_name>
+mise install            # installs the terraform/awscli/poetry versions pinned in mise.toml
+mise run deploy dev     # terraform init + workspace select/new + apply --auto-approve
 ```
 
-If you left `terraform_backend_bucket_name` empty at scaffold time, the scaffold uses a local
-backend — drop the `-backend-config=backend.hcl` flag and just run `terraform init`.
+The pipeline runs on schedule; trigger it manually via the Step Functions console
+(`{PROJECT_NAME}_{DOMAIN_NAME}_dev_{PIPELINE_NAME}`) or `mise run run-pipeline dev <pipeline_name>`.
 
-The pipeline is scheduled by default; you can also trigger it manually from the Step Functions
-console (`{PROJECT_NAME}_{DOMAIN_NAME}_dev_{PIPELINE_NAME}`) once `terraform apply` completes.
-
-To build your own deployment from scratch (consuming `domain_factory` and `pipeline_factory`
-as remote Terraform modules pinned to a release tag), see the
-[deployment guide](docs/deploying.md). To write your own tasks, see the
-[pipeline-author guide](docs/pipelines.md).
-
-## Concepts at a glance
-
-| Concept     | What it is                                                                                          | Provisioned by                            |
-|-------------|-----------------------------------------------------------------------------------------------------|-------------------------------------------|
-| **Domain**  | The foundation: S3, Glue DB, IAM, Lake Formation, Athena workgroup, sandbox images.                 | [`domain_factory/`](domain_factory)       |
-| **Pipeline**| A Step Functions workflow over a set of tasks, with triggers and failure notifications.             | [`pipeline_factory/`](pipeline_factory)   |
-| **Task**    | A Python or SQL unit of work, run on ECS Fargate or EMR Serverless. Reads/writes Iceberg tables.    | `tasks_configuration` map in the pipeline |
-| **Stage**   | An environment (`dev`, `prod`, …) derived from your Terraform workspace. Names and DB prefixes follow. | Terraform workspace                     |
-| **Iceberg** | The on-disk format for every managed table. ACID, schema evolution, time travel.                    | Automatic                                 |
-
-Resource names follow `{project_name}_{domain_name}_{stage_name}_…`. Non-prod stages prefix
-database names (`dev_my_db`); `prod` uses the unprefixed name.
+To consume `domain_factory` / `pipeline_factory` as remote Terraform modules pinned to a
+release tag, see [`docs/deploying.md`](docs/deploying.md). To write tasks, see
+[`docs/pipelines.md`](docs/pipelines.md).
 
 ## Documentation
 
@@ -147,32 +123,6 @@ database names (`dev_my_db`); `prod` uses the unprefixed name.
 ├── scripts/              CI helpers (scaffold generator, integration test driver)
 └── docs/                 In-depth guides (deployment, pipeline authoring)
 ```
-
-## Requirements
-
-Tool versions are pinned in [`mise.toml`](mise.toml). With [mise](https://mise.jdx.dev/) installed (`brew install mise` or `curl https://mise.run | sh`), `mise install` gets you the exact `terraform`, `python`, `poetry`, and `awscli` versions this repo expects. Without mise, install the same versions manually.
-
-- AWS account, AWS CLI configured
-- Terraform (version in `mise.toml`); AWS provider `>= 5.60.0, < 6.14.0`
-- Python and Poetry (versions in `mise.toml`) — needed to build the SDK from source and the integration-test fixture library
-- **Docker** running locally — for local task execution and `terraform apply`-time image builds. Not managed by mise; install Docker Desktop / OrbStack / colima separately.
-- A Terraform state backend — either an existing S3 bucket (set `terraform_backend_bucket_name` at scaffold time), or none (leave the prompt empty to use a local backend)
-- A VPC tagged `Name = {project_name}_network_platform_prod` with `Tier`-tagged subnets — see [`aws-network-stack`](https://github.com/erwan-simon/aws-network-stack) for a ready-made stack (NAT gateway optional via `nat_gateways_count`)
-
-See [`docs/deploying.md`](docs/deploying.md) for the full prerequisites checklist.
-
-## Working on the framework
-
-Common operations are wrapped as `mise` tasks (run `mise tasks` to list them):
-
-| Task | What it does |
-| --- | --- |
-| `mise run sdk-install` | `poetry install` in `datalake_sdk/` (pass `ARGS="-E agent"` for the Datalfred extra) |
-| `mise run sdk-build`   | Build the SDK wheel into `datalake_sdk/dist/` |
-| `mise run integration-full` | Deploy + run the in-tree `integration_tests/` fixture (5 tasks) |
-| `mise run integration-scaffold` | Generate the cookiecutter scaffold and run its integration test |
-
-The integration tasks call `scripts/run_integration_tests.sh`, which expects the standard AWS + Terraform-backend env vars (`ACCOUNT_ID`, `AWS_DEFAULT_REGION`, `PROJECT_NAME`, `STAGE_NAME`, `TERRAFORM_BACKEND_BUCKET`, `TERRAFORM_BACKEND_DYNAMODB`).
 
 ## License & Contributing
 

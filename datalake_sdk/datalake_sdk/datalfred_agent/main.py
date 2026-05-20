@@ -1,9 +1,7 @@
 import uuid
-import os
 import logging
 from datetime import datetime
-import awswrangler as wr
-from strands import Agent, tool
+from strands import Agent
 from strands.session.s3_session_manager import S3SessionManager
 from strands.session.file_session_manager import FileSessionManager
 from strands.agent.conversation_manager import SlidingWindowConversationManager
@@ -13,8 +11,6 @@ from datalake_sdk.datalfred_agent.code_debugger import code_debugger_agent
 from datalake_sdk.datalfred_agent.data_analyst import data_analyst_agent
 from datalake_sdk.datalfred_agent.run_guy import run_guy_agent
 
-from mcp.client.streamable_http import streamablehttp_client
-from strands.tools.mcp import MCPClient
 
 from strands_tools import file_read, file_write
 

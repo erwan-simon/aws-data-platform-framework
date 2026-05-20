@@ -6,11 +6,23 @@
 # Docker is not managed here — install Docker Desktop / OrbStack / colima separately,
 # the daemon is needed by `build_and_upload_image_to_ecr` at terraform apply time.
 
+[settings]
+python.compile = false
+
 [tools]
 terraform = "1.10.5"
 python    = "3.13.3"
 poetry    = "1.8.4"
 awscli    = "2.22.0"
+node      = "20.18.1"
+tflint    = "0.55.1"
+tfsec     = "1.28.13"
+hadolint  = "2.12.0"
+gitleaks  = "8.21.2"
+jq        = "1.7.1"
+"npm:snyk"    = "1.1294.3"
+ruff          = "0.7.4"
+"pipx:pre-commit" = "4.0.1"
 
 # `mise run <task>` to execute, `mise tasks` to list.
 
@@ -39,3 +51,39 @@ mise install
 mise run deploy "{{arg(name='stage')}}"
 mise run run-pipeline "{{arg(name='stage')}}" main
 """
+
+# ---------------------------------------------------------------------------
+# CI tasks (invoked by devops-platform-ci-templates v3.x — names are contractual)
+# ---------------------------------------------------------------------------
+
+[tasks.ruff]
+description = "ruff lint (pass --fix to auto-fix and format)"
+usage = 'flag "--fix" help="Auto-fix lint issues and run ruff format"'
+run = '''
+if [ "${usage_fix:-false}" = "true" ]; then
+  ruff check --fix .
+  ruff format .
+else
+  ruff check .
+fi
+'''
+
+[tasks."snyk-code"]
+description = "snyk code scan (CI)"
+run = "snyk . test"
+
+[tasks.hadolint]
+description = "hadolint Dockerfile lint (CI)"
+run = 'hadolint $(find . -name "Dockerfile")'
+
+[tasks.gitleaks]
+description = "gitleaks secret scan (CI)"
+run = "gitleaks detect --source . --verbose"
+
+# ---------------------------------------------------------------------------
+# Local-only convenience
+# ---------------------------------------------------------------------------
+
+[tasks.pre-commit-install]
+description = "Install the .pre-commit-config.yaml hooks into .git/hooks/"
+run = "pre-commit install"

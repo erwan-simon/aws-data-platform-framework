@@ -13,7 +13,7 @@ Invocation: `/new-task [pipeline] [task_name]`. Either arg may be omitted; ask i
 
 Adding a task touches three places that must agree:
 
-1. `iac/<pipeline>/<task>/` — code + requirements.
+1. `iac/<pipeline>/<task>/` — code (+ requirements for python/pyspark tasks).
 2. `tasks_configuration` map in the pipeline's `.tf` — declares the task to `pipeline_factory`.
 3. `iac/<pipeline>/orchestration_configuration.tftpl.json` — adds a state and wires it into the flow.
 
@@ -43,7 +43,7 @@ Forgetting (3) is the classic mistake: `terraform apply` succeeds, but Step Func
 
    Files to create:
      - iac/<PIPELINE>/<name>/code/main.py  (or main.sql)
-     - iac/<PIPELINE>/<name>/requirements.txt
+     - iac/<PIPELINE>/<name>/requirements.txt  (python/pyspark only; omit for SQL tasks)
 
    Files to edit:
      - <PIPELINE_TF>:
@@ -58,7 +58,7 @@ Forgetting (3) is the classic mistake: `terraform apply` succeeds, but Step Func
 
    - **`iac/<PIPELINE>/<name>/code/main.py`** (python/pyspark) — minimal stub: `import` from `datalake_sdk.base_processing_wrapper`, `def main(job):` building a trivial DataFrame, returning `{ "<domain>.<output_table>": job.ProcessingResponse(dataframe=...) }`. For pyspark, use `job.spark_session`. For each input table declared, add a TODO showing `job.input_tables` usage.
    - **`iac/<PIPELINE>/<name>/code/main.sql`** (sql) — minimal `SELECT * FROM <domain>.<first_input_table>` with a comment showing the output table will receive whatever this query returns. Reject if no input tables provided (SQL tasks always need at least one).
-   - **`iac/<PIPELINE>/<name>/requirements.txt`** — empty for SQL tasks; `pandas` (or `pyspark` lib pins) for python/pyspark. Don't include `datalake_sdk` — it's pre-installed in the runtime image.
+   - **`iac/<PIPELINE>/<name>/requirements.txt`** — python/pyspark only (`pandas`, `pyspark` lib pins, etc.); omit entirely for SQL tasks. Don't include `datalake_sdk` — it's pre-installed in the runtime image.
    - **Optional — table metadata YAML.** For each output table declared, ask the user whether to generate `iac/<PIPELINE>/<name>/code/tables_configuration/<db>.<table>.yaml`. If yes, scaffold a minimal file with an empty `description:` and a `schema:` block listing the columns the user expects (each with an empty `description:`) — the user fills the descriptions later. The SDK reads these YAMLs on every successful ingestion and applies them as Glue table description + column comments. See `iac/.terraform/modules/domain/docs/pipelines.md` §"Table metadata" for the exact format. Skip this step if the user declines.
 
 6. **Edit `tasks_configuration`** in `PIPELINE_TF`. Append the new entry preserving the surrounding formatting. Set `path = "<PIPELINE>/<name>"`. Include `additional_parameters` only if the user provided any.

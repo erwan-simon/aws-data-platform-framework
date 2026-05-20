@@ -26,7 +26,7 @@ from mimesis import Datetime
 
 try:
     from pipeline_utils.main import main as pipeline_utils_main
-except Exception as error:
+except Exception:
     # https://pypi.org/project/pipeline-utils/
     raise Exception(
         "Failed to import pipeline_utils.main. Check that you are installing the pipeline_utils library from private repository and not the public one"
@@ -114,9 +114,36 @@ def test_ingest_empty_dataset(
     job: BaseProcessingWrapper, database_name: str, table_prefix: str
 ):
     full_table_name = f"{database_name}.{table_prefix}_empty_df"
-    fake_data = create_fake_data(100)
     job.ingest(
         full_table_name=full_table_name, dataframe=convert_list_to_dataframe(job, [])
+    )
+
+
+def test_schema_validation_rejects_bad_data(
+    job: BaseProcessingWrapper, database_name: str, table_prefix: str
+):
+    """Negative path: the YAML for {table_prefix} declares `randomdata` as
+    `bigint, ge: 1000, le: 2000`. Feeding a value outside that range must
+    raise IngestionFailed *before* writing anything. If it silently goes
+    through, the data quality net is broken — fail loudly so CI catches it."""
+    full_table_name = f"{database_name}.{table_prefix}"
+    fake_data = create_fake_data(3)
+    fake_data[0]["randomdata"] = 50  # violates ge=1000
+    try:
+        job.ingest(
+            full_table_name=full_table_name,
+            dataframe=convert_list_to_dataframe(job, fake_data),
+            override_ingestion_mode="overwrite",
+        )
+    except job.IngestionFailed as err:
+        job.logger.info(
+            f"Schema validation correctly rejected the out-of-range dataframe "
+            f"for {full_table_name}: {err}"
+        )
+        return
+    raise AssertionError(
+        f"Schema validation did NOT fire on out-of-range randomdata for "
+        f"{full_table_name} — the data quality contract is broken."
     )
 
 
@@ -136,6 +163,7 @@ def main(job: BaseProcessingWrapper):
     pipeline_utils_main(job.logger)
     test_upsert(job, database_name, table_prefix)
     test_ingest_empty_dataset(job, database_name, table_prefix)
+    test_schema_validation_rejects_bad_data(job, database_name, table_prefix)
     assert job.perform_table_maintenance(
         f"{database_name}.{table_prefix}_upsert", force_maintenance=True
     )
