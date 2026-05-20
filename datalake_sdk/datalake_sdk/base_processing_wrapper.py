@@ -4,11 +4,13 @@ import json
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Dict, Type, List, Union, NamedTuple, Callable
+from typing import Any, Dict, Type, List, Union, NamedTuple, Callable
 import logging
 import boto3
 import yaml
 import awswrangler as wr
+import pandera.pandas as pa
+from datalake_sdk.schema_loader import build_pandera_schema
 from datalake_sdk.tqdm_logging_handler import TqdmLoggingHandler
 
 
@@ -56,6 +58,7 @@ class BaseProcessingWrapper:
                 .strftime("%Y-%m-%d")
             )
         self.task_code_path = "/usr/app/src/task_code/"
+        self.pandera_schemas: Dict[str, pa.DataFrameSchema] = {}
         if self.output_tables and os.path.isdir(
             self.task_code_path + "tables_configuration"
         ):
@@ -74,6 +77,9 @@ class BaseProcessingWrapper:
                     self.output_tables[table_name]["table_configuration"] = (
                         table_configuration_dict
                     )
+                    built_schema = build_pandera_schema(table_configuration_dict)
+                    if built_schema is not None:
+                        self.pandera_schemas[table_name] = built_schema
         self.task_additional_parameters: Dict[str, str] = {
             key.replace("TASK_ADDITIONAL_PARAMETERS_", ""): value
             for key, value in os.environ.items()
@@ -91,6 +97,29 @@ class BaseProcessingWrapper:
 
     class IngestionFailed(Exception):
         pass
+
+    def _validate_output_schema(self, full_table_name: str, dataframe: Any) -> None:
+        """Run the pandera schema (if any) against the output dataframe.
+
+        Collects every failure via `lazy=True`, logs `failure_cases`, and
+        raises `IngestionFailed` chained on the original pandera error so
+        callers can still introspect `exc.__cause__.failure_cases`.
+        """
+        schema = self.pandera_schemas.get(full_table_name)
+        if schema is None:
+            return
+        try:
+            schema.validate(dataframe, lazy=True)
+        except pa.errors.SchemaErrors as err:
+            self.logger.error(
+                "Schema validation failed for %s\n%s",
+                full_table_name,
+                err.failure_cases.to_string(),
+            )
+            raise self.IngestionFailed(
+                f"Schema validation failed for {full_table_name} "
+                f"({len(err.failure_cases)} failure cases — see logs)"
+            ) from err
 
     class ProcessingFailed(Exception):
         pass

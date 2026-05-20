@@ -5,7 +5,6 @@ import json
 import sys
 import os
 from pyspark.sql import SparkSession, DataFrame
-import awswrangler as wr
 import boto3
 from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
 
@@ -65,6 +64,8 @@ class SparkProcessingWrapper(BaseProcessingWrapper):
         override_ingestion_mode: str = None,
         force_maintenance: bool = False,
     ):
+        if full_table_name in self.pandera_schemas:
+            self._validate_output_schema(full_table_name, dataframe.pandas_api())
         if override_ingestion_mode:
             ingestion_mode = override_ingestion_mode
         else:

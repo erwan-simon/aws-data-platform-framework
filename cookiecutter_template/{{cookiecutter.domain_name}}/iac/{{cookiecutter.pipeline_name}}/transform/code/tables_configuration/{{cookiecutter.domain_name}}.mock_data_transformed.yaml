@@ -2,7 +2,11 @@ description: "Mock dataset with `value` doubled — output of the starter SQL tr
 schema:
   id:
     description: "Row identifier, carried from the input table."
+    type: bigint
   name:
     description: "Human-readable label, carried from the input table."
+    type: string
   doubled_value:
     description: "Input `value` multiplied by 2."
+    type: bigint
+    ge: 0

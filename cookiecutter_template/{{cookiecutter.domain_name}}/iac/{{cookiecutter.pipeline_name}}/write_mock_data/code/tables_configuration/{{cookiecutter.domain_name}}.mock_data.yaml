@@ -2,7 +2,14 @@ description: "Mock dataset produced by the starter pipeline — replace with you
 schema:
   id:
     description: "Row identifier."
+    type: bigint
+    ge: 1
+    unique: true
   name:
     description: "Human-readable label."
+    type: string
+    nullable: false
   value:
     description: "Sample numeric metric."
+    type: bigint
+    ge: 0

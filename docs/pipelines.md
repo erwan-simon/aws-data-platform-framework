@@ -271,6 +271,61 @@ Independently, the SDK writes a few Glue table properties on every successful wr
 (`datalake_sdk_upsert_keys`, `datalake_sdk_pipeline_name`, `datalake_sdk_task_name`) — see
 [`datalake_sdk/README.md#sdk-managed-glue-table-properties`](../datalake_sdk/README.md#sdk-managed-glue-table-properties).
 
+### Schema validation (optional)
+
+Add a `type:` field to a column to validate its dtype (and optionally its values) before
+ingestion. Validation is **opt-in per column** — a column with only a `description:` is left
+alone. Columns present in the DataFrame but absent from the YAML are ignored.
+
+```yaml
+schema:
+  customer_id:
+    description: "Unique customer identifier"
+    type: bigint
+    ge: 1
+    unique: true
+  customer_name:
+    description: "Full name"
+    type: string
+    nullable: false
+  email:
+    description: "Primary email"
+    type: string
+    str_contains: "@"
+  status:
+    description: "Lifecycle status"
+    type: string
+    isin: ["new", "validated", "rejected"]
+  amount:
+    description: "Transaction amount"
+    type: decimal(10, 2)
+    ge: 0
+```
+
+The SDK builds a [Pandera](https://pandera.readthedocs.io/) `DataFrameSchema` from the YAML at
+task startup and validates each output DataFrame at the top of `job.ingest(...)`. Spark
+DataFrames are validated via `pyspark.pandas` against the **same** schema — no separate
+contract to maintain. Failures are collected lazily (every bad column reported in one shot,
+not first-fail), the `failure_cases` table is logged, and an `IngestionFailed` is raised —
+nothing is written to the table.
+
+**Supported types** (Athena/Iceberg vocabulary):
+`string`, `int`, `bigint`, `float`, `double`, `boolean`, `date`, `timestamp`, `decimal(p, s)`.
+
+**Supported checks** (closed list, mapped to Pandera built-ins — keeps the schema
+JSON-serializable for versioning):
+
+| YAML keyword     | Effect                                           |
+|------------------|--------------------------------------------------|
+| `ge`, `gt`, `le`, `lt`, `eq` | Numeric comparison                   |
+| `isin`, `notin`              | Value belongs to / outside a list    |
+| `str_startswith`, `str_endswith`, `str_contains`, `str_matches` | String patterns |
+| `nullable: true\|false`      | Allow nulls (default `true`)         |
+| `unique: true\|false`        | Reject duplicates (default `false`)  |
+
+Any other keyword under a column with `type:` makes the task fail at startup (fail-fast,
+before the first `ingest()` call).
+
 ## Common pitfalls
 
 - **Forgot to bump the SDK version.** If you change `datalake_sdk/`, bump

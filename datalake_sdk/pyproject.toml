@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datalake_sdk"
-version = "5.10.0"
+version = "5.11.1"
 description = ""
 authors = ["Erwan Simon <erwan.simon@revolve.team>"]
 
@@ -12,6 +12,7 @@ awswrangler = "~3.14.0"
 tqdm = "~4.67.1"
 pyyaml = "~6.0.3"
 slack-sdk = "~3.39.0"
+pandera = { version = "~0.31.0", extras = ["pandas", "io"] }
 strands-agents = { version = "^1.9.0", optional = true }
 strands-agents-tools = { version = "^0.2.8", optional = true }
 strands-agents-builder = { version = "^0.1.10", optional = true }
