@@ -203,8 +203,8 @@ class BaseProcessingWrapper:
         self,
     ) -> Union[
         Type["pyspark.sql.DataFrame"],  # noqa: F821
-        Type["pandas.DataFrame"],
-    ]:  # noqa: F821
+        Type["pandas.DataFrame"],  # noqa: F821
+    ]:
         raise NotImplementedError(
             "This function has to be overriden by processing task."
         )
@@ -212,8 +212,8 @@ class BaseProcessingWrapper:
     class ProcessingResponse(NamedTuple):
         dataframe: Union[
             Type["pyspark.sql.DataFrame"],  # noqa: F821
-            Type["pandas.DataFrame"],
-        ] = None  # noqa: F821
+            Type["pandas.DataFrame"],  # noqa: F821
+        ] = None
         JobEndStatus: Enum = Enum("JobEndStatus", ["SUCCESS", "FAILURE"])
         job_end_status: Type["BaseProcessingWrapper.JobEndStatus"] = (
             JobEndStatus.SUCCESS

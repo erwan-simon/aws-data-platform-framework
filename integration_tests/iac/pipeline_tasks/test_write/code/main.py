@@ -26,7 +26,7 @@ from mimesis import Datetime
 
 try:
     from pipeline_utils.main import main as pipeline_utils_main
-except Exception as error:
+except Exception:
     # https://pypi.org/project/pipeline-utils/
     raise Exception(
         "Failed to import pipeline_utils.main. Check that you are installing the pipeline_utils library from private repository and not the public one"
@@ -114,7 +114,6 @@ def test_ingest_empty_dataset(
     job: BaseProcessingWrapper, database_name: str, table_prefix: str
 ):
     full_table_name = f"{database_name}.{table_prefix}_empty_df"
-    fake_data = create_fake_data(100)
     job.ingest(
         full_table_name=full_table_name, dataframe=convert_list_to_dataframe(job, [])
     )

@@ -13,6 +13,7 @@ __pycache__
 .DS_Store
 temp_build/
 .mypy_cache/
+.mise-data/
 logs/
 **/datalfred_outputs/
 _integration_test/
