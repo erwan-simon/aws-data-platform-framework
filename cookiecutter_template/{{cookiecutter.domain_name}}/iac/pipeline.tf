@@ -6,7 +6,8 @@ module "pipeline" {
   trigger = {
     "type" : "schedule"
     "argument" : "cron(15 1 * * ? *)",
-    "parameters" : jsonencode({})
+    "parameters" : jsonencode({}),
+    "start_disabled" : true,
   }
   tasks_configuration = {
     "write_mock_data" : {

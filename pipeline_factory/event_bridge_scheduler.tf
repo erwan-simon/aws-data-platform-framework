@@ -7,7 +7,7 @@ resource "aws_scheduler_schedule" "step_function_scheduled_trigger" {
   count      = var.trigger["type"] == "schedule" ? 1 : 0
   name       = "${local.environment_name}_${var.pipeline_name}_trigger"
   group_name = aws_scheduler_schedule_group.main[0].name
-  state      = "ENABLED"
+  state      = var.trigger["start_disabled"] ? "DISABLED" : "ENABLED"
   start_date = timeadd(timestamp(), "10m")
 
   flexible_time_window {
@@ -24,6 +24,10 @@ resource "aws_scheduler_schedule" "step_function_scheduled_trigger" {
       maximum_retry_attempts = 0
     }
     input = var.trigger["parameters"]
+  }
+
+  lifecycle {
+    ignore_changes = [state]
   }
 }
 
