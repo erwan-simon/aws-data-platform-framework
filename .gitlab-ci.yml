@@ -8,7 +8,7 @@ variables:
 
 include:
   - project: 'erwan.simon/devops-platform-ci-templates'
-    ref: 'v2.1.0'
+    ref: 'v2.2.0'
     file:
       - 'base.yml'
       - 'docker.yml'
