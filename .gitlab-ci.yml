@@ -38,10 +38,18 @@ stages:
   allow_failure: false
   variables:
     PYTHONUNBUFFERED: "1"
+    # Mise pulls some python builds whose GitHub artifact attestations aren't published.
+    MISE_PYTHON_GITHUB_ATTESTATIONS: "false"
   before_script:
     - mkdir -p ~/.aws
     - echo "${CI_JOB_JWT_V2}" > /tmp/web_identity_token
     - echo -e "[profile default]\nrole_arn=${GITLAB_ROLE_ARN}\nweb_identity_token_file=/tmp/web_identity_token" > ~/.aws/config
+    # Install mise so the pinned toolchain (terraform/python/poetry/awscli) is used,
+    # not whatever ships in the runner image.
+    - curl https://mise.run | sh
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise trust
+    - mise install
     - pip install boto3
   needs:
     - init_ecr_token
@@ -52,19 +60,10 @@ stages:
 integration_tests_full_fixture:
   extends: .integration_tests_base
   script:
-    - bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests
+    - mise run integration-full
 
 integration_tests_scaffold:
   extends: .integration_tests_base
-  variables:
-    # Mise pulls some python builds whose GitHub artifact attestations aren't published.
-    MISE_PYTHON_GITHUB_ATTESTATIONS: "false"
-  before_script:
-    - !reference [.integration_tests_base, before_script]
-    # Install mise so we can exercise the rendered scaffold through its own mise tasks.
-    - curl https://mise.run | sh
-    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
-    - mise trust
   script:
     - pip install cookiecutter
     - mise run integration-scaffold "$STAGE_NAME"
