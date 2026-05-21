@@ -36,6 +36,9 @@ stages:
 .integration_tests_base:
   stage: integration_tests
   allow_failure: false
+  # Serialize per-branch across pipelines (each job is its own group so
+  # full_fixture and scaffold still run in parallel within one pipeline).
+  resource_group: ${CI_COMMIT_REF_SLUG}_${CI_JOB_NAME}
   variables:
     PYTHONUNBUFFERED: "1"
     # Mise pulls some python builds whose GitHub artifact attestations aren't published.
