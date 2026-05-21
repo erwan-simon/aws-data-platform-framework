@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datalake_sdk"
-version = "5.11.5"
+version = "6.0.0"
 description = ""
 authors = ["Erwan Simon <erwan.simon@revolve.team>"]
 
@@ -9,6 +9,7 @@ python = "~3.11"
 boto3 = "~1.42.17"
 click = "~8.3.1"
 awswrangler = "~3.16"
+pandas = ">=2,<3"
 tqdm = "~4.67.1"
 pyyaml = "~6.0.3"
 slack-sdk = "~3.39.0"
