@@ -58,6 +58,9 @@ stages:
     - pip install boto3
   needs:
     - init_ecr_token
+    - flake8
+    - hadolint
+    - secret_scan
   except:
     refs:
       - tags
