@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-# ---- Builder stage ----
-# python:3.13 (Debian + buildpack-deps) ships gcc/g++/make, enough for numpy
-# 1.26.x to build from source (no cp313 wheel exists for that line).
+# python:3.11-slim ships no toolchain, but numpy 1.26.x has cp311 manylinux2014
+# wheels — no source build needed, so a single stage is enough.
 # hadolint ignore=DL3029
-FROM --platform=linux/amd64 python:3.13 AS builder
-RUN pip3 install --no-cache-dir jupyter notebook poetry==2.1.4 papermill
+FROM --platform=linux/amd64 python:3.11-slim
+RUN apt-get update && apt-get install -y --no-install-recommends awscli curl && rm -rf /var/lib/apt/lists/* && \
+	pip3 install --no-cache-dir jupyter notebook poetry==2.1.4 papermill
 
 WORKDIR /usr/app/src
 ARG RELATIVE_CODE_PATH
@@ -15,23 +15,8 @@ RUN poetry config virtualenvs.create false --local && poetry install
 COPY ${RELATIVE_CODE_PATH}/requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
 
-# ---- Runtime stage ----
-# python:3.13-slim drops buildpack-deps — same Debian Bookworm base, so
-# compiled extensions copied from the builder stay ABI-compatible.
-# hadolint ignore=DL3029
-FROM --platform=linux/amd64 python:3.13-slim
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-# Poetry installs the root package in editable mode via a `.pth` in site-packages
-# that points back to /usr/app/src/. We need the actual package files at that
-# path for the indirection to resolve at runtime — without this COPY, `python -m
-# datalake_sdk` fails with ModuleNotFoundError.
-COPY --from=builder /usr/app/src/datalake_sdk /usr/app/src/datalake_sdk
-RUN apt-get update && apt-get install -y --no-install-recommends awscli curl && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /usr/app/src
 COPY sandbox.ipynb .
-ARG RELATIVE_CODE_PATH
 COPY ${RELATIVE_CODE_PATH}/code/. /usr/app/src/task_code/
 ENV PYTHONPATH /usr/app/src/task_code/
 CMD [ "python", "-m", "datalake_sdk.native_python_processing_wrapper"]
