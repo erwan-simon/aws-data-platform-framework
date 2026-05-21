@@ -5,7 +5,7 @@ description = ""
 authors = ["Erwan Simon <erwan.simon@revolve.team>"]
 
 [tool.poetry.dependencies]
-python = "~3.13"
+python = "~3.11"
 boto3 = "~1.42.17"
 click = "~8.3.1"
 awswrangler = "~3.16"
@@ -16,7 +16,7 @@ pandera = { version = "~0.31.0", extras = ["pandas", "io"] }
 # Pinned <2.0 because pyspark.pandas (used by .pandas_api() on the Spark wrapper)
 # still references np.NaN, which was removed in NumPy 2.0.
 numpy = ">=1.26,<2.0"
-pyarrow = ">= 24"
+pyarrow = ">=17,<21"
 strands-agents = { version = "^1.9.0", optional = true }
 strands-agents-tools = { version = "^0.2.8", optional = true }
 strands-agents-builder = { version = "^0.1.10", optional = true }

@@ -1,2 +1,2 @@
 pandas
-shared-lib>=0.1.0
+shared-lib>=0.2.0
