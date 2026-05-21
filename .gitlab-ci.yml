@@ -64,9 +64,13 @@ stages:
     - flake8
     - hadolint
     - secret_scan
-  except:
-    refs:
-      - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    # Skip integration tests for docs-only commits (conventional commit `docs:` / `doc(scope):`).
+    - if: $CI_COMMIT_TITLE =~ /^docs?(\([^)]*\))?!?:/
+      when: never
+    - when: on_success
 
 integration_tests_full_fixture:
   extends: .integration_tests_base
