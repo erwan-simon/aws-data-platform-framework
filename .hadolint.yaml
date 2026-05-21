@@ -1,0 +1,8 @@
+# Project-wide hadolint config.
+#
+# DL3029 (no --platform with FROM) is ignored globally: all task/sandbox/lambda
+# images are built from a Mac arm64 host and targeted at amd64 AWS runtimes
+# (ECS Fargate, EMR Serverless, Lambda). Pinning `--platform=linux/amd64` on
+# FROM is the simplest portable way to ensure the resulting image is amd64.
+ignored:
+  - DL3029

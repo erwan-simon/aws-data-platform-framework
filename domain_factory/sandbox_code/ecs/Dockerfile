@@ -2,8 +2,10 @@
 
 # python:3.11-slim ships no toolchain, but numpy 1.26.x has cp311 manylinux2014
 # wheels — no source build needed, so a single stage is enough.
-# hadolint ignore=DL3029
 FROM --platform=linux/amd64 python:3.11-slim
+# Sandbox image, unpinned apt/pip deps kept on purpose: pinning awscli/curl across debian-slim updates
+# and jupyter/notebook/papermill (dev tools) is high-maintenance/low-value here.
+# hadolint ignore=DL3008,DL3013
 RUN apt-get update && apt-get install -y --no-install-recommends awscli curl && rm -rf /var/lib/apt/lists/* && \
 	pip3 install --no-cache-dir jupyter notebook poetry==2.1.4 papermill
 
@@ -31,6 +33,8 @@ ARG PROJECT_NAME \
 	OUTPUT_TABLES \
 	AWS_REGION \
     TASK_ADDITIONAL_PARAMETERS
+# AWS_REGION is set first so the next ENV can safely derive AWS_DEFAULT_REGION from it (hadolint DL3044).
+ENV AWS_REGION=${AWS_REGION}
 ENV PROJECT_NAME=${PROJECT_NAME} \
 	DOMAIN_NAME=${DOMAIN_NAME} \
 	STAGE_NAME=${STAGE_NAME} \
@@ -40,6 +44,5 @@ ENV PROJECT_NAME=${PROJECT_NAME} \
 	INPUT_TABLES=${INPUT_TABLES} \
 	OUTPUT_TABLES=${OUTPUT_TABLES} \
 	AWS_DEFAULT_REGION=${AWS_REGION} \
-	AWS_REGION=${AWS_REGION} \
     TASK_ADDITIONAL_PARAMETERS=${TASK_ADDITIONAL_PARAMETERS} \
     PYTHONUNBUFFERED=1
