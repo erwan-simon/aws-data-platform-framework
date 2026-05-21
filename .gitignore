@@ -21,3 +21,4 @@ _integration_test/
 !CLAUDE.md
 CLAUDE.local.md
 integration_tests/iac/backend.hcl
+.python-version
