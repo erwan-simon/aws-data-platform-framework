@@ -30,5 +30,22 @@ printf 'Deployment duration for %s/%s: %dm%02ds (%ds total)\n' \
     "${DOMAIN_NAME}" "${PIPELINE_NAME}" \
     $((deploy_duration / 60)) $((deploy_duration % 60)) "${deploy_duration}"
 
+# Pre-start EMR Serverless applications for this pipeline so they're warm by the
+# time the state machine reaches the Spark tasks. start-application is async and
+# idempotent on apps already STARTED/STARTING, so we fire-and-forget.
+application_name_prefix="${PROJECT_NAME}_${DOMAIN_NAME}_${STAGE_NAME}_${PIPELINE_NAME}_"
+application_ids=$(aws emr-serverless list-applications \
+    --states CREATED STOPPED \
+    --query "applications[?starts_with(name, \`${application_name_prefix}\`)].id" \
+    --output text)
+if [ -z "${application_ids}" ]; then
+    printf 'No EMR Serverless application to pre-start for prefix %s\n' "${application_name_prefix}"
+else
+    for application_id in ${application_ids}; do
+        printf 'Pre-starting EMR Serverless application %s\n' "${application_id}"
+        aws emr-serverless start-application --application-id "${application_id}"
+    done
+fi
+
 state_machine_arn="arn:aws:states:${AWS_DEFAULT_REGION}:${ACCOUNT_ID}:stateMachine:${PROJECT_NAME}_${DOMAIN_NAME}_${STAGE_NAME}_${PIPELINE_NAME}"
 python "${REPO_ROOT}/scripts/run_integration_tests.py" "${state_machine_arn}"
