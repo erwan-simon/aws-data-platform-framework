@@ -7,6 +7,8 @@
 # We keep a builder stage with the toolchain and ship only the resolved
 # site-packages to the runtime.
 FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11 AS builder
+# Toolchain packages on AL2 — pinning gcc/cargo/rust across base image bumps is brittle, kept unversioned.
+# hadolint ignore=DL3033
 RUN yum install -y gcc gcc-c++ make rust cargo && yum clean all
 RUN pip3 install --no-cache-dir poetry==2.1.4
 ARG RELATIVE_CODE_PATH
@@ -38,6 +40,8 @@ ARG PROJECT_NAME \
 	OUTPUT_TABLES \
 	AWS_REGION \
     TASK_ADDITIONAL_PARAMETERS
+# AWS_REGION is set first so the next ENV can safely derive AWS_DEFAULT_REGION from it (hadolint DL3044).
+ENV AWS_REGION=${AWS_REGION}
 ENV PROJECT_NAME=${PROJECT_NAME} \
 	DOMAIN_NAME=${DOMAIN_NAME} \
 	STAGE_NAME=${STAGE_NAME} \
@@ -47,5 +51,4 @@ ENV PROJECT_NAME=${PROJECT_NAME} \
 	INPUT_TABLES=${INPUT_TABLES} \
 	OUTPUT_TABLES=${OUTPUT_TABLES} \
 	AWS_DEFAULT_REGION=${AWS_REGION} \
-	AWS_REGION=${AWS_REGION} \
     TASK_ADDITIONAL_PARAMETERS=${TASK_ADDITIONAL_PARAMETERS}

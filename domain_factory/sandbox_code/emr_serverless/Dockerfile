@@ -8,6 +8,8 @@
 FROM --platform=linux/amd64 public.ecr.aws/emr-serverless/spark/emr-7.1.0:20240823
 USER root
 
+# Sandbox image: jupyter/notebook left unpinned (dev tools, poetry is the only pinned dep).
+# hadolint ignore=DL3013
 RUN python3.11 -m ensurepip --upgrade && \
 	python3.11 -m pip install --no-cache-dir poetry==2.1.4 jupyter notebook
 
@@ -44,6 +46,8 @@ ARG PROJECT_NAME \
 	OUTPUT_TABLES \
 	AWS_REGION \
     TASK_ADDITIONAL_PARAMETERS
+# AWS_REGION is set first so the next ENV can safely derive AWS_DEFAULT_REGION from it (hadolint DL3044).
+ENV AWS_REGION=${AWS_REGION}
 ENV PROJECT_NAME=${PROJECT_NAME} \
 	DOMAIN_NAME=${DOMAIN_NAME} \
 	STAGE_NAME=${STAGE_NAME} \
@@ -53,7 +57,6 @@ ENV PROJECT_NAME=${PROJECT_NAME} \
 	INPUT_TABLES=${INPUT_TABLES} \
 	OUTPUT_TABLES=${OUTPUT_TABLES} \
 	AWS_DEFAULT_REGION=${AWS_REGION} \
-	AWS_REGION=${AWS_REGION} \
     TASK_ADDITIONAL_PARAMETERS=${TASK_ADDITIONAL_PARAMETERS} \
     PYTHONUNBUFFERED=1
 
