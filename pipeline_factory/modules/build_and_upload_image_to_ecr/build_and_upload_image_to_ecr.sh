@@ -21,10 +21,18 @@ package_datalake_sdk=${18}
 # if the terraform assumes a role, it should be here because this script execution does not benefit from terraform assume role
 role_to_assume_arn=${19}
 
+unique_id="job_${$}_${RANDOM}"
+builder_name="datalake_builder_${unique_id}"
+
 # Build context lives entirely under /tmp so the source tree stays clean and the
 # cp never sees its own destination. Wiped on exit via trap (success or failure).
 staging_dir=$(mktemp -d -t datalake_build_XXXXXX)
-trap 'rm -rf "$staging_dir"' EXIT
+cleanup() {
+  echo "🧹 Cleaning staging dir and Docker builder..."
+  rm -rf "$staging_dir"
+  docker buildx rm -f "$builder_name" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
 # Dockerfile + sibling files (sandbox.ipynb, etc.) go at the build context root —
 # the sandbox Dockerfiles reference `sandbox.ipynb` directly (no RELATIVE_CODE_PATH).
@@ -81,15 +89,15 @@ then
     exit 1;
 fi
 
+unique_id="job_${$}_${RANDOM}"
+builder_name="datalake_builder_${unique_id}"
+
 # `--cache-to type=registry` requires the docker-container (or kubernetes)
 # buildx driver — the default `docker` driver (what plain docker / docker:dind
 # ships with) doesn't support registry cache export. Create + select a named
 # builder idempotently so the cost is paid once per runner.
-if ! docker buildx inspect datalake_builder >/dev/null 2>&1; then
-  docker buildx create --name datalake_builder --driver docker-container --use
-else
-  docker buildx use datalake_builder
-fi
+echo "Creating ephemeral builder: $builder_name"
+docker buildx create --name "$builder_name" --driver docker-container --use
 
 if ! DOCKER_BUILDKIT=1 \
     CODEARTIFACT_REPOSITORY_TOKEN=${codeartifact_repository_token} \
