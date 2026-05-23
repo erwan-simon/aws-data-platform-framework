@@ -1,0 +1,34 @@
+# trivy: one finding ID per line. Used by `mise run trivy` (CI + pre-commit).
+# Add a comment above each ID explaining why the finding is accepted.
+# Reference: https://trivy.dev/latest/docs/configuration/filtering/#by-finding-ids
+
+# ECR repo intentionally allows tag overwrite: the `buildcache` tag (BuildKit
+# mode=max manifest) and `runtime-<digest>` tags are rewritten on every build by
+# `build_and_upload_image_to_ecr.sh`. Switching to IMMUTABLE would break both the
+# layer cache and the runtime image update flow. See
+# pipeline_factory/modules/build_and_upload_image_to_ecr/ecr.tf and
+# build_and_upload_image_to_ecr.sh.
+AVD-AWS-0031
+
+# Tasks security group must egress to PyPI, CodeArtifact, ECR, S3, and AWS
+# regional API endpoints. Reducing this to VPC-endpoint-only is a separate
+# hardening track (network refactor — not in the trivy MR scope). The SG
+# ingress is already restricted to `self=true`, so the exposure is outbound
+# only. See domain_factory/tasks_security_group.tf.
+AVD-AWS-0104
+
+# Data and technical S3 buckets use SSE-S3 (AES256) rather than SSE-KMS with a
+# customer-managed key. security-guidelines.md allows KMS-managed by default
+# and only requires CMKs "if the data is sensitive or audit requires it" — not
+# the case here (internal data lake, no compliance constraint). Encryption at
+# rest is enforced; switching to CMK would add ops cost (key rotation,
+# cross-account IAM) without commensurate benefit. See domain_factory/s3_*.tf.
+AVD-AWS-0132
+
+# Failure-notification SNS topics are encrypted with the AWS-managed
+# `alias/aws/sns` KMS key (satisfies AWS-0095). Same reasoning as AWS-0132:
+# security-guidelines.md allows AWS-managed KMS by default; CMK is only
+# required when data is sensitive or audit-driven, which isn't the case for
+# pipeline failure alerts. See domain_factory/lambda_failsafe_shutdown.tf and
+# pipeline_factory/cloudwatch_event_task_failed.tf.
+AVD-AWS-0136
