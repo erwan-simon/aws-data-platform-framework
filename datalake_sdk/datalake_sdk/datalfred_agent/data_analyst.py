@@ -7,6 +7,7 @@ from strands.session.file_session_manager import FileSessionManager
 from strands.handlers.callback_handler import PrintingCallbackHandler
 from strands.agent.conversation_manager import SlidingWindowConversationManager
 
+
 @tool
 def list_databases() -> dict:
     """
@@ -22,6 +23,7 @@ def list_databases() -> dict:
         db["Name"]: db.get("Description", "No description found.")
         for db in response["DatabaseList"]
     }
+
 
 @tool
 def list_tables(database_name: str) -> list:
@@ -39,18 +41,21 @@ def list_tables(database_name: str) -> list:
     tables_dict_list = glue_client.get_tables(DatabaseName=database_name)["TableList"]
     tables_info = []
     for table_dict in tables_dict_list:
-        tables_info.append({
-            "Name": table_dict["Name"],
-            "Description": table_dict.get("Description", "No description found"),
-            "Schema": [
-                {
-                    "Name": col["Name"],
-                    "Type": col["Type"],
-                    "Description": col.get("Comment", "No description found.")
-                }
-                for col in table_dict["StorageDescriptor"]["Columns"] + table_dict.get("PartitionKeys", [])
-            ]
-        })
+        tables_info.append(
+            {
+                "Name": table_dict["Name"],
+                "Description": table_dict.get("Description", "No description found"),
+                "Schema": [
+                    {
+                        "Name": col["Name"],
+                        "Type": col["Type"],
+                        "Description": col.get("Comment", "No description found."),
+                    }
+                    for col in table_dict["StorageDescriptor"]["Columns"]
+                    + table_dict.get("PartitionKeys", [])
+                ],
+            }
+        )
     return tables_info
 
 
@@ -68,19 +73,25 @@ def query_athena(sql_query: str, database_name: str, tool_context: ToolContext) 
     Returns:
         dict: result of the query in the form of a list of dictionaries (records).
     """
-    environment_name = f"{tool_context.agent.state.get('project_name')}_" + \
-        f"{tool_context.agent.state.get('domain_name')}_" + \
-        f"{tool_context.agent.state.get('stage_name')}"
+    environment_name = (
+        f"{tool_context.agent.state.get('project_name')}_"
+        + f"{tool_context.agent.state.get('domain_name')}_"
+        + f"{tool_context.agent.state.get('stage_name')}"
+    )
     try:
         df = wr.athena.read_sql_query(
             sql=sql_query,
             workgroup=environment_name,
             database=database_name,
-            ctas_approach=False
+            ctas_approach=False,
         )
         return df.to_dict(orient="records")
     except Exception as error:
-        return "TOOL_ERROR: The SQL request execution failed with following error: " + str(error)
+        return (
+            "TOOL_ERROR: The SQL request execution failed with following error: "
+            + str(error)
+        )
+
 
 DATA_ANALYST_SYSTEM_PROMPT = """
 You are an assistant that finds the relevant database to anwser the user question using exclusively the tools at your disposal.
@@ -88,6 +99,7 @@ You can then query data in Athena and analyse the results to answer user questio
 Always get the table info before building the Athena SQL query
 IF A TOOL FAILS, GIVE THE FULL ERROR, UNLESS IT IS A SQL SYNTAX ERROR DO NOT RETRY
 """
+
 
 @tool(context=True)
 def data_analyst_agent(user_prompt: str, tool_context: ToolContext):
@@ -110,21 +122,40 @@ def data_analyst_agent(user_prompt: str, tool_context: ToolContext):
             model=tool_context.agent.state.get("inference_profile_arn"),
             system_prompt=DATA_ANALYST_SYSTEM_PROMPT,
             callback_handler=PrintingCallbackHandler()
-            if tool_context.agent.state.get("print_sub_agent_debug") else None,
+            if tool_context.agent.state.get("print_sub_agent_debug")
+            else None,
             session_manager=FileSessionManager(
-                session_id=f"strands-data-analyst-session-{str(uuid.uuid1())}"),
+                session_id=f"strands-data-analyst-session-{str(uuid.uuid1())}"
+            ),
             tools=[list_databases, list_tables, query_athena],
-            conversation_manager=conversation_manager)
-        DATA_ANALYST_AGENT.state.set("project_name", tool_context.agent.state.get("project_name"))
-        DATA_ANALYST_AGENT.state.set("domain_name", tool_context.agent.state.get("domain_name"))
-        DATA_ANALYST_AGENT.state.set("stage_name", tool_context.agent.state.get("stage_name"))
+            conversation_manager=conversation_manager,
+        )
+        DATA_ANALYST_AGENT.state.set(
+            "project_name", tool_context.agent.state.get("project_name")
+        )
+        DATA_ANALYST_AGENT.state.set(
+            "domain_name", tool_context.agent.state.get("domain_name")
+        )
+        DATA_ANALYST_AGENT.state.set(
+            "stage_name", tool_context.agent.state.get("stage_name")
+        )
     agent_response = DATA_ANALYST_AGENT(user_prompt)
-    total_input_tokens = tool_context.agent.state.get("total_input_tokens") if tool_context.agent.state.get("total_input_tokens") else 0
-    total_output_tokens = tool_context.agent.state.get("total_output_tokens") if tool_context.agent.state.get("total_output_tokens") else 0
+    total_input_tokens = (
+        tool_context.agent.state.get("total_input_tokens")
+        if tool_context.agent.state.get("total_input_tokens")
+        else 0
+    )
+    total_output_tokens = (
+        tool_context.agent.state.get("total_output_tokens")
+        if tool_context.agent.state.get("total_output_tokens")
+        else 0
+    )
     tool_context.agent.state.set(
         "total_output_tokens",
-        total_output_tokens + agent_response.metrics.accumulated_usage["outputTokens"])
+        total_output_tokens + agent_response.metrics.accumulated_usage["outputTokens"],
+    )
     tool_context.agent.state.set(
         "total_input_tokens",
-        total_input_tokens + agent_response.metrics.accumulated_usage["inputTokens"])
+        total_input_tokens + agent_response.metrics.accumulated_usage["inputTokens"],
+    )
     return agent_response
