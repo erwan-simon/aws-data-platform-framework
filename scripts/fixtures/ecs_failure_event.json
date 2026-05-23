@@ -1,0 +1,33 @@
+{
+  "dry_run": true,
+  "source": "aws.ecs",
+  "detail-type": "ECS Task State Change",
+  "detail": {
+    "clusterArn": "arn:aws:ecs:eu-west-1:000000000000:cluster/SMOKE_TEST_CLUSTER",
+    "lastStatus": "STOPPED",
+    "stopCode": "TaskFailedToStart",
+    "stoppedReason": "CannotPullContainerError: pull access denied (smoke test fixture)",
+    "containers": [
+      {
+        "exitCode": 1,
+        "reason": "CannotPullContainerError: pull access denied (smoke test fixture)"
+      }
+    ],
+    "overrides": {
+      "containerOverrides": [
+        {
+          "environment": [
+            {
+              "name": "step_function_task_token",
+              "value": "smoke-test-fake-token"
+            },
+            {
+              "name": "step_function_execution_arn",
+              "value": "arn:aws:states:eu-west-1:000000000000:execution:smoke-test:fake"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

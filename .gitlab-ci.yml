@@ -82,3 +82,19 @@ integration_tests_scaffold:
   script:
     - pip install cookiecutter
     - mise run integration-scaffold "$STAGE_NAME"
+
+# Smoke-tests the failsafe_shutdown lambda on the env deployed by
+# integration_tests_full_fixture (the lambda is domain-scoped, so the
+# full-fixture env exposes it). Catches regressions where the lambda crashes
+# at init (e.g. broken packaging) — which would silently leave task failures
+# undetected in production, as observed on dev1 in May 2026.
+failsafe_lambda_smoke_test:
+  extends: .integration_tests_base
+  needs:
+    - init_ecr_token
+    - ruff
+    - hadolint
+    - secret_scan
+    - integration_tests_full_fixture
+  script:
+    - bash scripts/failsafe_lambda_smoke_test.sh "$PROJECT_NAME" datalake_test "$STAGE_NAME"

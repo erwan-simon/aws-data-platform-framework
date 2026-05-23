@@ -13,9 +13,13 @@ RUN yum install -y gcc gcc-c++ make rust cargo && yum clean all
 RUN pip3 install --no-cache-dir poetry==2.1.4
 ARG RELATIVE_CODE_PATH
 WORKDIR /build
-COPY ${RELATIVE_CODE_PATH}/datalake_sdk/pyproject.toml .
 COPY ${RELATIVE_CODE_PATH}/datalake_sdk/. .
-RUN poetry config virtualenvs.create false --local && poetry install --extras agent
+# Build a wheel and install it (not `poetry install`, which would be editable and
+# leave a .pth pointing at /build — that path doesn't exist in the runtime stage,
+# so `import datalake_sdk` would fail at Lambda init.
+# hadolint ignore=DL3013
+RUN poetry build -f wheel \
+ && pip install --no-cache-dir "$(ls dist/datalake_sdk-*.whl)[agent]"
 COPY ${RELATIVE_CODE_PATH}/requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt --no-cache-dir
 
