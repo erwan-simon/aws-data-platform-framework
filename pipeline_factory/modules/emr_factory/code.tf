@@ -25,14 +25,6 @@ module "image_build_and_upload" {
   base_image_uri       = var.domain_object.emr_sandbox_image_uri
 }
 
-resource "time_sleep" "wait_for_ecr_to_create" {
-  # docker image takes a little while to effectively appear in the ECR after being pushed
-  depends_on = [module.image_build_and_upload]
-  triggers   = module.image_build_and_upload.rebuild_trigger
-
-  create_duration = "30s"
-}
-
 resource "aws_ecr_repository_policy" "emr_serverless_application_access" {
   repository = module.image_build_and_upload.ecr_name
   policy = templatefile("${path.module}/iam_ecr_resource_based_policy_emr_serverless_access.json", {

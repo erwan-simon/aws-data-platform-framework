@@ -125,3 +125,22 @@ then
   echo "Cannot build and push docker image"
   exit 1
 fi
+
+# Buildx --push success is not a hard guarantee that the manifest is immediately
+# readable from ECR's read path (rare transient registry lag, mode=max edge
+# cases). The script must not exit 0 unless the tag is actually visible — any
+# downstream resource (EMR Serverless, ECS) that references the tag will 404
+# otherwise. The terraform_data resource trusts this script's exit code as the
+# proof that the image is ready to be consumed.
+deadline=$(( $(date +%s) + 60 ))
+until aws ecr describe-images \
+        --repository-name "${ecr_name}" \
+        --image-ids imageTag="${target_image_tag}" \
+        --region "${aws_region_name}" >/dev/null 2>&1; do
+    if [ "$(date +%s)" -ge "${deadline}" ]; then
+        echo "Image ${ecr_name}:${target_image_tag} not visible in ECR 60s after push — aborting"
+        exit 1
+    fi
+    sleep 2
+done
+echo "Confirmed ${ecr_name}:${target_image_tag} is present in ECR"

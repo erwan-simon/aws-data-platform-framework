@@ -1,6 +1,6 @@
 output "image_uri" {
   value      = "${aws_ecr_repository.main.repository_url}:${local.image_tag}"
-  depends_on = [null_resource.image_build_and_upload]
+  depends_on = [terraform_data.image_build_and_upload]
 }
 
 output "ecr_arn" {
