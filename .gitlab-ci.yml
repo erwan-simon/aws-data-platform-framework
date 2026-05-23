@@ -8,7 +8,7 @@ variables:
 
 include:
   - project: 'erwan.simon/devops-platform-ci-templates'
-    ref: 'v2.2.1'
+    ref: 'v2.3.2'
     file:
       - 'base.yml'
       - 'docker.yml'
@@ -61,7 +61,7 @@ stages:
     - pip install boto3
   needs:
     - init_ecr_token
-    - flake8
+    - ruff
     - hadolint
     - secret_scan
   rules:

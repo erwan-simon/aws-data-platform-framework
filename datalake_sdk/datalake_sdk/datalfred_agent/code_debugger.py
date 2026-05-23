@@ -42,25 +42,20 @@ def analyze_python_file(file_path: str) -> dict:
             func_name = node.name
             args = [arg.arg for arg in node.args.args]
             docstring = ast.get_docstring(node)
-            functions_info.append({
-                "name": func_name,
-                "args": args,
-                "docstring": docstring
-            })
+            functions_info.append(
+                {"name": func_name, "args": args, "docstring": docstring}
+            )
 
         # Classes
         if isinstance(node, ast.ClassDef):
             class_name = node.name
             docstring = ast.get_docstring(node)
-            classes_info.append({
-                "name": class_name,
-                "docstring": docstring
-            })
+            classes_info.append({"name": class_name, "docstring": docstring})
 
     return {
         "functions": functions_info,
         "classes": classes_info,
-        "module_docstring": ast.get_docstring(tree)
+        "module_docstring": ast.get_docstring(tree),
     }
 
 
@@ -77,7 +72,9 @@ def read_file_as_string(file_path: str) -> str:
     """
     path = Path(file_path)
     if not path.is_file():
-        raise FileNotFoundError(f"The file '{file_path}' does not exist or is not a file.")
+        raise FileNotFoundError(
+            f"The file '{file_path}' does not exist or is not a file."
+        )
     return path.read_text(encoding="utf-8")
 
 
@@ -97,12 +94,15 @@ def get_tree(start_path: str) -> dict:
     """
     directory = Path(start_path)
     tree = {"name": directory.name, "type": "directory", "children": []}
-    for entry in sorted(directory.iterdir(), key=lambda e: (e.is_file(), e.name.lower())):
+    for entry in sorted(
+        directory.iterdir(), key=lambda e: (e.is_file(), e.name.lower())
+    ):
         if entry.is_dir():
             tree["children"].append(get_tree(entry))
         else:
             tree["children"].append({"name": entry.name, "type": "file"})
     return tree
+
 
 CODE_DEBUGGER_SYSTEM_PROMPT = """
 You are an assistant tasked to help users using the tools at your disposal.
@@ -111,6 +111,7 @@ If you think it relevant do not hesitate to read the code of the tasks.
 You also can find the configuration of the step function in the .tftpl.json files
 Right now you are in the {current_path} directory.
 """
+
 
 @tool(context=True)
 def code_debugger_agent(main_agent, user_prompt: str, tool_context: ToolContext):
@@ -130,18 +131,29 @@ def code_debugger_agent(main_agent, user_prompt: str, tool_context: ToolContext)
         global CODE_DEBUGGER_AGENT
         CODE_DEBUGGER_AGENT = Agent(
             model=tool_context.agent.state.get("inference_profile_arn"),
-            system_prompt=CODE_DEBUGGER_SYSTEM_PROMPT.format(
-                current_path=os.getcwd()),
+            system_prompt=CODE_DEBUGGER_SYSTEM_PROMPT.format(current_path=os.getcwd()),
             callback_handler=PrintingCallbackHandler()
-            if tool_context.agent.state.get("print_sub_agent_debug") else None,
-            tools=[get_tree, read_file_as_string, analyze_python_file])
+            if tool_context.agent.state.get("print_sub_agent_debug")
+            else None,
+            tools=[get_tree, read_file_as_string, analyze_python_file],
+        )
     agent_response = CODE_DEBUGGER_AGENT(user_prompt)
-    total_input_tokens = tool_context.agent.state.get("total_input_tokens") if tool_context.agent.state.get("total_input_tokens") else 0
-    total_output_tokens = tool_context.agent.state.get("total_output_tokens") if tool_context.agent.state.get("total_output_tokens") else 0
+    total_input_tokens = (
+        tool_context.agent.state.get("total_input_tokens")
+        if tool_context.agent.state.get("total_input_tokens")
+        else 0
+    )
+    total_output_tokens = (
+        tool_context.agent.state.get("total_output_tokens")
+        if tool_context.agent.state.get("total_output_tokens")
+        else 0
+    )
     tool_context.agent.state.set(
         "total_output_tokens",
-        total_output_tokens + agent_response.metrics.accumulated_usage["outputTokens"])
+        total_output_tokens + agent_response.metrics.accumulated_usage["outputTokens"],
+    )
     tool_context.agent.state.set(
         "total_input_tokens",
-        total_input_tokens + agent_response.metrics.accumulated_usage["inputTokens"])
+        total_input_tokens + agent_response.metrics.accumulated_usage["inputTokens"],
+    )
     return agent_response
