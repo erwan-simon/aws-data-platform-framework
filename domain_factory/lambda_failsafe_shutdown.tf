@@ -94,8 +94,9 @@ check "failsafe_alerting_configured" {
 }
 
 resource "aws_sns_topic" "failsafe_shutdown_lambda_failure" {
-  count = local.failsafe_alerting_enabled
-  name  = "${local.environment_name}_failsafe_shutdown_lambda_failure"
+  count             = local.failsafe_alerting_enabled
+  name              = "${local.environment_name}_failsafe_shutdown_lambda_failure"
+  kms_master_key_id = "alias/aws/sns"
 }
 
 resource "aws_sns_topic_policy" "failsafe_shutdown_lambda_failure" {

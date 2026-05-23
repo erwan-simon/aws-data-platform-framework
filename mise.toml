@@ -16,7 +16,7 @@ poetry    = "1.8.4"
 awscli    = "2.22.0"
 node      = "20.18.1"
 tflint    = "0.55.1"
-tfsec     = "1.28.13"
+trivy     = "0.70.0"
 hadolint  = "2.13.1"
 gitleaks  = "8.21.2"
 jq        = "1.7.1"
@@ -84,6 +84,17 @@ run = 'hadolint $(find . -name "Dockerfile")'
 [tasks.gitleaks]
 description = "gitleaks secret scan (CI)"
 run = "gitleaks detect --source . --verbose"
+
+[tasks.trivy]
+description = "trivy IaC misconfig scan. Default: show all severities, exit 0 (informative). --strict: fail on HIGH/CRITICAL only (used by CI + pre-commit)."
+usage = 'flag "--strict" help="Fail (exit 1) on HIGH/CRITICAL findings, hide LOW/MEDIUM"'
+run = '''
+if [ "${usage_strict:-false}" = "true" ]; then
+  trivy config --severity HIGH,CRITICAL --exit-code 1 --misconfig-scanners terraform --skip-dirs cookiecutter_template --skip-dirs _integration_test .
+else
+  trivy config --misconfig-scanners terraform --skip-dirs cookiecutter_template --skip-dirs _integration_test .
+fi
+'''
 
 # ---------------------------------------------------------------------------
 # Local-only convenience

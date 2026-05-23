@@ -265,7 +265,9 @@ from CodeArtifact) and add the task's own dependencies and code on top.
 ## CI/CD: GitLab is the source of truth
 
 All CI runs in [`.gitlab-ci.yml`](../.gitlab-ci.yml). The stages are: `init`, `format`,
-`security`, `unit_tests`, `integration_tests` (two parallel jobs — one deploys+runs the in-tree
+`security` (secret scan, Snyk, plus `trivy_iac` which fails the pipeline on any HIGH/CRITICAL
+Terraform misconfig — accepted exceptions live in [`.trivyignore`](../.trivyignore) with
+justification), `unit_tests`, `integration_tests` (two parallel jobs — one deploys+runs the in-tree
 [`integration_tests/`](../integration_tests) full fixture, the other generates the cookiecutter
 scaffold and deploys+runs that), `mirror_to_github`.
 

@@ -24,6 +24,34 @@ stages:
   - mirror_to_github
 
 #############################################################
+######################## SECURITY ###########################
+#############################################################
+# Custom security scan: trivy IaC misconfig scan on Terraform files.
+# Fails the pipeline on HIGH/CRITICAL findings. Accepted-finding IDs are
+# listed (with justification) in `.trivyignore` at the repo root.
+trivy_iac:
+  stage: security
+  image: ubuntu:24.04
+  variables:
+    # Don't let `mise run trivy` auto-install other tools declared in mise.toml
+    # (poetry, snyk, pre-commit…). The slim runner image only has the aqua
+    # backend trivy needs, and the before_script installs trivy explicitly.
+    MISE_AUTO_INSTALL: "false"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git
+    - curl https://mise.run | sh
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise trust
+    - mise install trivy
+  script:
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise run trivy --strict
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+#############################################################
 ######################## INTEGRATION-TESTS ##################
 #############################################################
 # Two parallel jobs deploy and exercise different pipeline shapes against the live AWS account:
@@ -64,6 +92,7 @@ stages:
     - ruff
     - hadolint
     - secret_scan
+    - trivy_iac
   rules:
     - if: $CI_COMMIT_TAG
       when: never
@@ -95,6 +124,7 @@ failsafe_lambda_smoke_test:
     - ruff
     - hadolint
     - secret_scan
+    - trivy_iac
     - integration_tests_full_fixture
   script:
     - bash scripts/failsafe_lambda_smoke_test.sh "$PROJECT_NAME" datalake_test "$STAGE_NAME"

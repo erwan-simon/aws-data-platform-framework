@@ -29,3 +29,10 @@ repos:
         language: system
         pass_filenames: false
         files: (^|/)Dockerfile$
+
+      - id: trivy
+        name: trivy IaC misconfig scan (HIGH/CRITICAL)
+        entry: mise run trivy --strict
+        language: system
+        pass_filenames: false
+        files: \.tf$
