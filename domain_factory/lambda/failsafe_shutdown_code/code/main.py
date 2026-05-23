@@ -121,6 +121,12 @@ def main(event: dict, _: dict):
         )
     except KeyError as error:
         raise ValueError(f"Unknown event source: {event['source']}") from error
+    if event.get("dry_run") is True:
+        # Smoke test path: prove the function loads, parses the event and
+        # constructs its boto3 clients without actually aborting the SFN or
+        # paging anyone. See scripts/failsafe_lambda_smoke_test.sh.
+        logger.info("dry_run mode — skipping send_task_failure and slack notification")
+        return {"status": "dry_run_ok", "parsed_error": error_message}
     if not error_message:
         # task did not really fail, false alarm
         return

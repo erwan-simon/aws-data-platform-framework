@@ -184,7 +184,7 @@ Per call, in your target AWS account:
 | **Compute**     | An ECS cluster with a sandbox image; optionally an EMR Serverless application + sandbox image (see [EMR sandbox](#emr-sandbox-creation))               |
 | **AI**          | A Bedrock inference profile per model size (`small`, `medium`, `large`) for Datalfred (skipped when `enable_llm = false`)                              |
 | **Packaging**   | A private CodeArtifact repository, into which `datalake_sdk` is built and published                                                                    |
-| **Operations**  | A failsafe-shutdown Lambda that kills tasks running past a configured duration; an EMR Studio for interactive Spark dev                                |
+| **Operations**  | A failsafe-shutdown Lambda that catches ECS/EMR task failures and unblocks the Step Function (with a CloudWatch alarm on its own errors); an EMR Studio for interactive Spark dev |
 
 Configurable knobs are documented in [`domain_factory/variables.tf`](../domain_factory/variables.tf)
 — the source is the canonical reference, keep it open while you compose your call. The ones
@@ -279,9 +279,22 @@ etc. The version bump (major/minor/patch) is derived from the prefixes.
 
 ## Operational notes
 
-- **Failsafe shutdown.** The domain Lambda monitors task run-time and kills tasks that exceed
-  a duration threshold. It does **not** enforce a hard timeout on EMR Serverless jobs (Spark
-  needs its own configuration for that).
+- **Failsafe shutdown.** The domain Lambda is the last-resort circuit breaker: EventBridge
+  fires it on every ECS / EMR Serverless task failure, and it calls `SendTaskFailure` on the
+  Step Function so the pipeline doesn't stay blocked on `waitForTaskToken`. It also catches
+  `TaskFailedToStart` cases (image pull errors, etc.) where the task never produces an exit
+  code. A CloudWatch alarm on the Lambda's `Errors` metric publishes to a per-domain SNS topic
+  subscribed by `failure_notification_receivers` — so if the Lambda itself ever crashes (e.g.
+  packaging regression), you're paged instead of silently losing the safety net.
+- **What happens if the failsafe Lambda crashes.** If the Lambda fails before calling
+  `SendTaskFailure` (init-time import error, missing IAM, etc.), the Step Function stays
+  `RUNNING` on `waitForTaskToken` until its 1-year service quota expires. The pipeline-level
+  failure email rule (`cloudwatch_event_task_failed.tf`) only fires on `FAILED`/`ABORTED`
+  states, so it won't surface the hang either. The two safety nets in that case are: (a) the
+  CloudWatch alarm on the Lambda's `Errors` metric — only wired if
+  `failure_notification_receivers` is non-empty (a warning is emitted at `terraform apply`
+  when it isn't); (b) the Slack integration in `datalake_sdk` if configured. Domains that
+  opt out of both have no alert path for this specific failure mode.
 - **Cost tags.** Every resource is tagged with `project_name`, `domain_name`, `stage_name` —
   use AWS Cost Explorer or a FinOps tool to slice spend by domain or stage.
 - **Athena cost.** Not capped by the framework. Set up AWS Budgets or Cost Anomaly Detection

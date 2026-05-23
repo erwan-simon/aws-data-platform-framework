@@ -73,6 +73,75 @@ resource "aws_lambda_function_event_invoke_config" "failsafe_shutdown" {
   maximum_retry_attempts       = 0
 }
 
+# Detect future silent failures of this lambda (e.g. import-time crash like the
+# one observed after the multi-stage Dockerfile refactor, which left every ECS
+# task failure undetected). Native CloudWatch → SNS, no extra code path to avoid
+# adding new failure modes on the very component meant to be the last resort.
+locals {
+  failsafe_alerting_enabled = length(compact(var.failure_notification_receivers)) > 0 ? 1 : 0
+}
+
+# Non-blocking apply-time warning so an operator who left
+# failure_notification_receivers empty knows the meta-alarm on the failsafe
+# lambda itself is also off. The lambda still runs normally; the gap is
+# specifically the lambda-crash case (see docs/deploying.md "Failsafe
+# shutdown").
+check "failsafe_alerting_configured" {
+  assert {
+    condition     = local.failsafe_alerting_enabled == 1
+    error_message = "failure_notification_receivers is empty: no CloudWatch alarm on the failsafe_shutdown lambda's own Errors metric will be created. If the lambda ever crashes (e.g. packaging regression), task failures may leave Step Function executions blocked on waitForTaskToken indefinitely with no email alert — only the Slack integration (if configured in datalake_sdk) would surface it. Same opt-out trade-off as the pipeline-level failure emails being off."
+  }
+}
+
+resource "aws_sns_topic" "failsafe_shutdown_lambda_failure" {
+  count = local.failsafe_alerting_enabled
+  name  = "${local.environment_name}_failsafe_shutdown_lambda_failure"
+}
+
+resource "aws_sns_topic_policy" "failsafe_shutdown_lambda_failure" {
+  count  = local.failsafe_alerting_enabled
+  arn    = aws_sns_topic.failsafe_shutdown_lambda_failure[0].arn
+  policy = data.aws_iam_policy_document.failsafe_shutdown_lambda_failure_sns[0].json
+}
+
+data "aws_iam_policy_document" "failsafe_shutdown_lambda_failure_sns" {
+  count = local.failsafe_alerting_enabled
+  statement {
+    effect    = "Allow"
+    actions   = ["SNS:Publish"]
+    resources = [aws_sns_topic.failsafe_shutdown_lambda_failure[0].arn]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_sns_topic_subscription" "failsafe_shutdown_lambda_failure_email" {
+  for_each  = local.failsafe_alerting_enabled == 1 ? toset(compact(var.failure_notification_receivers)) : toset([])
+  topic_arn = aws_sns_topic.failsafe_shutdown_lambda_failure[0].arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
+resource "aws_cloudwatch_metric_alarm" "failsafe_shutdown_lambda_failure" {
+  count               = local.failsafe_alerting_enabled
+  alarm_name          = "${local.environment_name}_failsafe_shutdown_lambda_failure"
+  alarm_description   = "Triggers when the ${aws_lambda_function.failsafe_shutdown.function_name} lambda errors. This lambda is the last-resort circuit breaker on task failures; any error here means task failures may go undetected."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    FunctionName = aws_lambda_function.failsafe_shutdown.function_name
+  }
+  alarm_actions = [aws_sns_topic.failsafe_shutdown_lambda_failure[0].arn]
+}
+
 resource "aws_iam_role" "lambda_failsafe_shutdown" {
   name = "${local.environment_name}_lambda_failsafe_shutdown"
 
