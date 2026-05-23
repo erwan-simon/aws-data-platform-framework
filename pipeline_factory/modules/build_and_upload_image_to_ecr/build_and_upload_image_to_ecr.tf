@@ -22,7 +22,34 @@ locals {
   cleaned_source_path = trimsuffix(var.source_code_path, "/")
 }
 
-resource "null_resource" "image_build_and_upload" {
+# Ground the build trigger in ECR's actual state, not just terraform inputs.
+# When `image_tag` is non-monotonic across applies (different branches push
+# different sha1 values into the same repo) the lifecycle policy can expire
+# a manifest terraform later expects — the EMR Serverless update then 404s.
+# Reading ECR at plan-time and feeding the result into `triggers_replace`
+# turns "image was expired" into a normal rebuild trigger, making the system
+# self-healing.
+#
+# The external provider is used (not `data "aws_ecr_image"`) because the AWS
+# provider's data sources raise a plan error on `ImageNotFoundException`,
+# which is precisely the case we want to handle as data. The wrapper script
+# swallows that exit code and returns `{"present_tag": "MISSING"}`.
+data "external" "ecr_image_presence" {
+  program = ["bash", "${path.module}/check_ecr_image_presence.sh"]
+  query = {
+    repository_name = aws_ecr_repository.main.name
+    image_tag       = local.image_tag
+    region          = var.domain_object.aws_region
+    role_to_assume  = var.role_to_assume_arn
+  }
+}
+
+moved {
+  from = null_resource.image_build_and_upload
+  to   = terraform_data.image_build_and_upload
+}
+
+resource "terraform_data" "image_build_and_upload" {
   provisioner "local-exec" {
     command = join(" ", [
       "/bin/bash",
@@ -51,7 +78,12 @@ resource "null_resource" "image_build_and_upload" {
   }
   # `image_tag` is included so a change to the tag scheme itself (e.g. the `runtime-` prefix
   # above) forces a rebuild — `total_rebuild_trigger` alone doesn't see derivation tweaks.
-  triggers   = merge(local.total_rebuild_trigger, { image_tag = local.image_tag })
+  # `ecr_presence` flips to "MISSING" when the expected manifest isn't in ECR, which
+  # forces a rebuild even if inputs are unchanged (self-healing after lifecycle expiry).
+  triggers_replace = merge(local.total_rebuild_trigger, {
+    image_tag    = local.image_tag
+    ecr_presence = data.external.ecr_image_presence.result.present_tag
+  })
   depends_on = [aws_ecr_repository.main]
 }
 

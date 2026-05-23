@@ -18,7 +18,10 @@ resource "aws_ecr_lifecycle_policy" "main" {
   # manifest, written and pulled by build_and_upload_image_to_ecr.sh). Rule 2
   # keeps only the most recent runtime image — scoped via the `runtime-` tag
   # prefix (set in build_and_upload_image_to_ecr.tf) so the buildcache image,
-  # which lives in the same repo, is never swept by this rule.
+  # which lives in the same repo, is never swept by this rule. Rule 3 reaps
+  # untagged manifests (orphaned BuildKit cache pushes, ex-runtime manifests
+  # whose tag was moved to a new digest) after 1 day — no existing rule covers
+  # them so without this they accumulate forever.
   policy = <<eof
 {
     "rules": [
@@ -42,6 +45,19 @@ resource "aws_ecr_lifecycle_policy" "main" {
                 "tagStatus": "tagged",
                 "tagPrefixList": ["runtime-"],
                 "countType": "imageCountMoreThan",
+                "countNumber": 1
+            },
+            "action": {
+                "type": "expire"
+            }
+        },
+        {
+            "rulePriority": 3,
+            "description": "Reap untagged manifests (orphaned BuildKit cache, ex-runtime) after 1 day",
+            "selection": {
+                "tagStatus": "untagged",
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
                 "countNumber": 1
             },
             "action": {

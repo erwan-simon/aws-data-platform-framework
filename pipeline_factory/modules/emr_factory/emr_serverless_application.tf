@@ -26,8 +26,10 @@ resource "aws_emrserverless_application" "task" {
     studio_enabled = true
   }
 
-  tags       = { Name = "${local.environment_name}_${var.pipeline_name}_${var.task_name}" }
-  depends_on = [time_sleep.wait_for_ecr_to_create]
+  tags = { Name = "${local.environment_name}_${var.pipeline_name}_${var.task_name}" }
+  # The build script itself polls ECR until the tag is visible before exit 0
+  # (build_and_upload_image_to_ecr.sh), so no extra wait is needed here.
+  depends_on = [module.image_build_and_upload]
 }
 
 resource "aws_s3_object" "task_code" {
