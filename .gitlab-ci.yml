@@ -125,6 +125,5 @@ failsafe_lambda_smoke_test:
     - hadolint
     - secret_scan
     - trivy_iac
-    - integration_tests_full_fixture
   script:
     - bash scripts/failsafe_lambda_smoke_test.sh "$PROJECT_NAME" datalake_test "$STAGE_NAME"
