@@ -37,18 +37,23 @@ dir = "datalake_sdk"
 run = "poetry build"
 
 [tasks.integration-full]
-description = "Deploy + run the in-tree integration_tests/ fixture (5 tasks)"
-run = "bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests"
+description = "Deploy + run the in-tree integration_tests/ fixture (5 tasks). Usage: mise run integration-full [parallelism]"
+usage = 'arg "parallelism" default="5" help="terraform apply -parallelism value"'
+run = "bash scripts/run_integration_tests.sh integration_tests/iac datalake_test tests {{arg(name='parallelism')}}"
 
 [tasks.integration-scaffold]
-description = "Render the cookiecutter scaffold and exercise it through its own mise tasks. Usage: mise run integration-scaffold <stage>"
+description = "Render the cookiecutter scaffold and exercise it through its own mise tasks. Usage: mise run integration-scaffold <stage> [parallelism]"
+usage = '''
+arg "stage"
+arg "parallelism" default="5" help="terraform apply -parallelism value"
+'''
 run = """
 set -eu
 bash scripts/generate_scaffold.sh
 cd _integration_test/datalake_scaffold
 mise trust
 mise install
-mise run deploy "{{arg(name='stage')}}"
+mise run deploy "{{arg(name='stage')}}" "{{arg(name='parallelism')}}"
 mise run run-pipeline "{{arg(name='stage')}}" main
 """
 

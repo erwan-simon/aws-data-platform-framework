@@ -28,12 +28,16 @@ run = [
 ]
 
 [tasks.deploy]
-description = "terraform init + workspace select/new + apply. Usage: mise run deploy <workspace>"
+description = "terraform init + workspace select/new + apply. Usage: mise run deploy <workspace> [parallelism]"
 dir = "iac"
+usage = {% raw %}'''
+arg "ws"
+arg "parallelism" default="5" help="terraform apply -parallelism value"
+'''{% endraw %}
 run = [
   "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
   "terraform workspace select {% raw %}{{arg(name='ws')}}{% endraw %} 2>/dev/null || terraform workspace new {% raw %}{{arg(name='ws')}}{% endraw %}",
-  "terraform apply --auto-approve",
+  "terraform apply --auto-approve -parallelism={% raw %}{{arg(name='parallelism')}}{% endraw %}",
 ]
 
 [tasks.run-pipeline]

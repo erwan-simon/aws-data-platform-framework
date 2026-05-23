@@ -13,6 +13,7 @@ set -euo pipefail
 IAC_DIR="${1:?iac_dir required}"
 DOMAIN_NAME="${2:?domain_name required}"
 PIPELINE_NAME="${3:?pipeline_name required}"
+PARALLELISM="${4:-5}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -23,7 +24,7 @@ terraform init \
     -backend-config="bucket=${TERRAFORM_BACKEND_BUCKET}" \
     -backend-config="dynamodb_table=${TERRAFORM_BACKEND_DYNAMODB}"
 terraform workspace new "${STAGE_NAME}" || terraform workspace select "${STAGE_NAME}"
-terraform apply --auto-approve
+terraform apply --auto-approve -parallelism="${PARALLELISM}"
 deploy_end=$(date +%s)
 deploy_duration=$((deploy_end - deploy_start))
 printf 'Deployment duration for %s/%s: %dm%02ds (%ds total)\n' \
