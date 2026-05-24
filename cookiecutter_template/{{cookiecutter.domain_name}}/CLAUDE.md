@@ -22,6 +22,7 @@ After `terraform init`, the framework repo is cached locally — that's the cano
 
 - `iac/.terraform/modules/domain/docs/pipelines.md` — how to author tasks, declare them, wire the state machine
 - `iac/.terraform/modules/domain/docs/deploying.md` — provisioning, prerequisites, IAM
+- `iac/.terraform/modules/domain/docs/troubleshooting/README.md` — known errors and fixes (start here when an apply fails with a cryptic AWS message)
 - `iac/.terraform/modules/domain/domain_factory/variables.tf` — every domain knob
 - `iac/.terraform/modules/domain/pipeline_factory/variables.tf` — every pipeline/task knob
 - `iac/.terraform/modules/domain/datalake_sdk/README.md` — SDK runtime API (`job.ingest`, `job.spark_session`, …)

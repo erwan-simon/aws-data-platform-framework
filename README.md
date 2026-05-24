@@ -110,6 +110,7 @@ release tag, see [`docs/deploying.md`](docs/deploying.md). To write tasks, see
 | Use the SDK (CLI or Python library)      | [`datalake_sdk/README.md`](datalake_sdk/README.md) |
 | Deploy and operate the platform          | [`docs/deploying.md`](docs/deploying.md)    |
 | Write a pipeline task                    | [`docs/pipelines.md`](docs/pipelines.md)    |
+| Diagnose a confusing error               | [`docs/troubleshooting/`](docs/troubleshooting/)     |
 
 ## Repository layout
 
@@ -121,7 +122,7 @@ release tag, see [`docs/deploying.md`](docs/deploying.md). To write tasks, see
 ├── cookiecutter_template/ Scaffold for a new domain (minimal 2-task starter pipeline)
 ├── integration_tests/    In-tree, feature-exhaustive domain CI deploys end-to-end
 ├── scripts/              CI helpers (scaffold generator, integration test driver)
-└── docs/                 In-depth guides (deployment, pipeline authoring)
+└── docs/                 In-depth guides (deployment, pipeline authoring, troubleshooting)
 ```
 
 ## License & Contributing

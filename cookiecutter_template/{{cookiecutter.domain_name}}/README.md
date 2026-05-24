@@ -124,3 +124,4 @@ All three skills check that your git worktree is clean before editing anything, 
 - Deployment guide: [`docs/deploying.md`](https://github.com/erwan-simon/aws-data-platform-framework/blob/prod/docs/deploying.md)
 - Pipeline authoring guide: [`docs/pipelines.md`](https://github.com/erwan-simon/aws-data-platform-framework/blob/prod/docs/pipelines.md)
 - SDK runtime API: [`datalake_sdk/README.md`](https://github.com/erwan-simon/aws-data-platform-framework/blob/prod/datalake_sdk/README.md)
+- Troubleshooting: [`docs/troubleshooting/`](https://github.com/erwan-simon/aws-data-platform-framework/blob/prod/docs/troubleshooting/)
