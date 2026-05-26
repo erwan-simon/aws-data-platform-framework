@@ -1,5 +1,5 @@
 module "datalake_sdk_deploy" {
-  source = "git::https://github.com/erwan-simon/terraform-module-build-and-publish-poetry-library-to-codeartifact//iac?ref=v1.0.0"
+  source = "git::https://github.com/erwan-simon/terraform-module-build-and-publish-poetry-library-to-codeartifact//iac?ref=v1.1.1"
 
   code_path                       = "${abspath(path.module)}/../datalake_sdk/"
   artifact_repository_domain_name = var.project_name

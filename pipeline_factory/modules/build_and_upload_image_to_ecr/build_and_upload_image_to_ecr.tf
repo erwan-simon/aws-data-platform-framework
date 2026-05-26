@@ -44,11 +44,6 @@ data "external" "ecr_image_presence" {
   }
 }
 
-moved {
-  from = null_resource.image_build_and_upload
-  to   = terraform_data.image_build_and_upload
-}
-
 resource "terraform_data" "image_build_and_upload" {
   provisioner "local-exec" {
     command = join(" ", [

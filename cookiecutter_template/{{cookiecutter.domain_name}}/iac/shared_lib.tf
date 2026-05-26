@@ -12,7 +12,7 @@ locals {
 }
 
 module "shared_lib_deploy" {
-  source = "git::https://github.com/erwan-simon/terraform-module-build-and-publish-poetry-library-to-codeartifact//iac?ref=v1.0.0"
+  source = "git::https://github.com/erwan-simon/terraform-module-build-and-publish-poetry-library-to-codeartifact//iac?ref=v1.1.1"
 
   code_path                       = "${abspath(path.root)}/../code/shared_lib"
   artifact_repository_endpoint    = module.domain.codeartifact_repository_endpoint
