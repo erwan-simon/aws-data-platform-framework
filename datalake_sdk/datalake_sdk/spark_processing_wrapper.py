@@ -251,7 +251,8 @@ def sql_entrypoint_processing_function(job: SparkProcessingWrapper):
         )
     with open("task_code/main.sql") as sql_request_file:
         sql_request_string = sql_request_file.read().format(
-            database_prefix=f"glue_catalog.{job.long_database_prefix}"
+            database_prefix=f"glue_catalog.{job.long_database_prefix}",
+            logical_date=job.logical_date,
         )
     return {
         list(job.output_tables.keys())[0]: job.ProcessingResponse(
