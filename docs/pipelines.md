@@ -75,6 +75,7 @@ variables into the container:
 | `TASK_ADDITIONAL_PARAMETERS_<KEY>` | Terraform / SFN | One env var per entry of `additional_parameters` (uppercased key).   |
 | `step_function_task_token`         | Step Functions  | Callback token; the SDK uses it to send success / failure to SFN.    |
 | `step_function_execution_arn`      | Step Functions  | Identifies the running execution.                                    |
+| `step_function_execution_input`    | Step Functions  | JSON-encoded execution input; the SDK parses optional override keys from it (e.g. `logical_date` — see "Overriding the logical date" below). |
 
 You generally don't read these directly — the SDK wrapper does. New per-task config goes
 through `additional_parameters`, **not** new env-var plumbing.
@@ -190,6 +191,25 @@ additional_parameters = {
   "static_key"  = "static_value"
 }
 ```
+
+## Overriding the logical date
+
+By default the SDK exposes `job.logical_date` as the Step Functions execution `startDate`
+(or today's date when running outside Step Functions). To pin a specific date — typically
+for a backfill or replay — pass `{"logical_date": "YYYY-MM-DD"}` in the execution input
+when starting the state machine. The framework wires this value through to every task
+(ECS native + EMR Spark) automatically; no change to your `main.py` or to the
+orchestration template is required.
+
+```bash
+aws stepfunctions start-execution \
+  --state-machine-arn arn:aws:states:eu-west-1:...:stateMachine:my_pipeline \
+  --input '{"logical_date": "2024-03-15"}'
+```
+
+The SDK validates the string against `%Y-%m-%d` and fails the task fast on a malformed
+value. Omitting the key keeps the default behaviour — non-breaking for existing schedules
+and EventBridge rules.
 
 ## Failure notifications
 

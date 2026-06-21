@@ -154,6 +154,10 @@ def main(job: BaseProcessingWrapper):
     """
     assert job.task_additional_parameters["hello"] == "world!"
     assert job.task_additional_parameters["other_hello"] == "world!"
+    # Exercises the logical_date override piped through the SFN execution input.
+    assert job.logical_date == "2020-01-01", (
+        f"Expected logical_date '2020-01-01', got '{job.logical_date}'"
+    )
     database_name = "datalake_test"
     if IS_SPARK_ENVIRONMENT:
         table_prefix = "test_spark"

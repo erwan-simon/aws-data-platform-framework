@@ -23,6 +23,12 @@ output "step_function_task_configuration" {
             {
               "Name" : "step_function_execution_arn",
               "Value.$" : "$$.Execution.Id"
+            },
+            {
+              # JSON-encoded execution input; the SDK parses it to read
+              # optional override keys (e.g. logical_date).
+              "Name" : "step_function_execution_input",
+              "Value.$" : "States.JsonToString($$.Execution.Input)"
               }], [for key, value in var.task_configuration["additional_parameters"] : {
               "Name" : "TASK_ADDITIONAL_PARAMETERS_${trimsuffix(key, ".$")}",
               "Value${endswith(key, ".$") ? ".$" : ""}" : value

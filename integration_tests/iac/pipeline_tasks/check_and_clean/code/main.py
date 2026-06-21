@@ -92,6 +92,10 @@ def main(job: BaseProcessingWrapper):
     long_database_name = (
         f"{job.stage_name}_" if job.stage_name != "prod" else ""
     ) + short_database_name
+    # Exercises the logical_date override piped through the SFN execution input.
+    assert job.logical_date == "2020-01-01", (
+        f"Expected logical_date '2020-01-01', got '{job.logical_date}'"
+    )
     check_table_metadata(job, short_database_name, "test_native")
     check_table_metadata(job, short_database_name, "test_spark")
     execute_sql_query(job, short_database_name, "test_native_sql_entrypoint")

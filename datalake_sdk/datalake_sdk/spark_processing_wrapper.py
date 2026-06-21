@@ -273,8 +273,15 @@ def job_entrypoint_function(execute=True) -> (SparkProcessingWrapper, object):
             os.environ[argv_key] = argv_value
         else:
             argv_without_task_additional_parameters[argv_key] = argv_value
+    execution_input = json.loads(
+        argv_without_task_additional_parameters.pop(
+            "step_function_execution_input", "{}"
+        )
+        or "{}"
+    )
     spark_processing_wrapper = SparkProcessingWrapper(
-        **argv_without_task_additional_parameters
+        logical_date=execution_input.get("logical_date") or "",
+        **argv_without_task_additional_parameters,
     )
     if spark_processing_wrapper.is_sql_job:
         processing_function = sql_entrypoint_processing_function

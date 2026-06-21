@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -195,9 +196,11 @@ def sql_entrypoint_processing_function(self):
 
 
 def job_entrypoint_function(execute=True) -> (NativePythonProcessingWrapper, object):
+    execution_input = json.loads(os.getenv("step_function_execution_input") or "{}")
     native_processing_wrapper = NativePythonProcessingWrapper(
         step_function_task_token=os.getenv("step_function_task_token"),
         step_function_execution_arn=os.getenv("step_function_execution_arn"),
+        logical_date=execution_input.get("logical_date") or "",
     )
     if native_processing_wrapper.is_sql_job:
         processing_function = sql_entrypoint_processing_function

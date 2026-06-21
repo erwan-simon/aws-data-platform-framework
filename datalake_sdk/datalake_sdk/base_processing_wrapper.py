@@ -32,7 +32,7 @@ class BaseProcessingWrapper:
     step_function_task_token: Union[str, None] = None
     step_function_execution_arn: Union[str, None] = None
     logger: logging.Logger = logging.getLogger()
-    logical_date: str = datetime.today().strftime("%Y-%m-%d")
+    logical_date: str = ""
 
     def __post_init__(self):
         logging.basicConfig(
@@ -49,7 +49,14 @@ class BaseProcessingWrapper:
         self.athena_workgroup_name = (
             f"{self.project_name}_{self.domain_name}_{self.stage_name}"
         )
-        if self.step_function_execution_arn:
+        if self.logical_date:
+            # Explicit override from Step Function execution input — fail-fast
+            # on bad format and canonicalise to zero-padded YYYY-MM-DD so
+            # downstream partition keys stay consistent with the startDate path.
+            self.logical_date = datetime.strptime(
+                self.logical_date, "%Y-%m-%d"
+            ).strftime("%Y-%m-%d")
+        elif self.step_function_execution_arn:
             self.logical_date = (
                 self.boto_session.client("stepfunctions")
                 .describe_execution(executionArn=self.step_function_execution_arn)[
@@ -57,6 +64,8 @@ class BaseProcessingWrapper:
                 ]
                 .strftime("%Y-%m-%d")
             )
+        else:
+            self.logical_date = datetime.today().strftime("%Y-%m-%d")
         self.task_code_path = "/usr/app/src/task_code/"
         self.pandera_schemas: Dict[str, pa.DataFrameSchema] = {}
         if self.output_tables and os.path.isdir(

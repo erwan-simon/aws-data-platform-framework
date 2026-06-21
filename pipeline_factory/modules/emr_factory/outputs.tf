@@ -33,6 +33,9 @@ output "step_function_task_configuration" {
           "EntryPointArguments" : [merge({
             "step_function_task_token.$" : "$$.Task.Token",
             "step_function_execution_arn.$" : "$$.Execution.Id",
+            # JSON-encoded execution input; the SDK parses it to read optional
+            # override keys (e.g. logical_date).
+            "step_function_execution_input.$" : "States.JsonToString($$.Execution.Input)",
           }, { for key, value in var.task_configuration["additional_parameters"] : "TASK_ADDITIONAL_PARAMETERS_${key}" => value })],
           "SparkSubmitParameters" : join(" ", [
             "--conf", "spark.executor.cores=${tostring(var.task_configuration["infra_config"]["spark_executor_cores"])}",
