@@ -14,6 +14,8 @@ AWS-based data lake platform with three top-level pieces:
 
 The SDK version in `datalake_sdk/pyproject.toml` is parsed by `domain_factory/locals.tf` and is what gets published to CodeArtifact — bump it when SDK changes need to land in deployed tasks.
 
+**Hybrid shipping model — bump on *any* public-interface change, not just functional ones.** The two processing wrappers (`native_python_processing_wrapper.py` for ECS, `spark_processing_wrapper.py` for EMR) are shipped **as source** inside the task image, while `base_processing_wrapper.py` (and the rest of the SDK they import from) is shipped via the **CodeArtifact wheel** installed in the sandbox image. The two can drift in version, and a wrapper referencing a new symbol from the base module against an older wheel fails at task startup with `ImportError: cannot import name 'X' from 'datalake_sdk.base_processing_wrapper'`. Rule: bump `datalake_sdk/pyproject.toml` whenever you touch the public surface of any SDK module imported by a wrapper, **including pure refactors** (e.g. extracting a helper into the base wrapper that the wrappers then import) — the user-visible contract being unchanged is not a reason to skip the bump.
+
 ## Common commands
 
 Tool versions (terraform, python, poetry, awscli) are pinned in `mise.toml` at the repo root. If [mise](https://mise.jdx.dev/) is installed, the right versions activate automatically when you cd into the repo; otherwise install the versions listed in `mise.toml` manually. The scaffold has its own `mise.toml` with a slightly different toolset.

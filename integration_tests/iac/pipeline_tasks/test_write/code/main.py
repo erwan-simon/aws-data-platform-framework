@@ -1,6 +1,8 @@
 # Part of the platform's integration-test fixtures. Useful as a working multi-table example; safe to delete in a real domain.
-from typing import Union
+import logging
 import random
+from typing import Union
+
 import pandas as pd
 import awswrangler as wr
 
@@ -157,6 +159,10 @@ def main(job: BaseProcessingWrapper):
     # Exercises the logical_date override piped through the SFN execution input.
     assert job.logical_date == "2020-01-01", (
         f"Expected logical_date '2020-01-01', got '{job.logical_date}'"
+    )
+    # Exercises the debug override piped through the SFN execution input.
+    assert job.logger.level == logging.DEBUG, (
+        f"Expected logger level DEBUG ({logging.DEBUG}), got {job.logger.level}"
     )
     database_name = "datalake_test"
     if IS_SPARK_ENVIRONMENT:

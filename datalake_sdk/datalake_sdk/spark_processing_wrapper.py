@@ -6,7 +6,10 @@ import sys
 import os
 from pyspark.sql import SparkSession, DataFrame
 import boto3
-from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
+from datalake_sdk.base_processing_wrapper import (
+    BaseProcessingWrapper,
+    parse_debug_flag,
+)
 
 
 @dataclass
@@ -282,6 +285,7 @@ def job_entrypoint_function(execute=True) -> (SparkProcessingWrapper, object):
     )
     spark_processing_wrapper = SparkProcessingWrapper(
         logical_date=execution_input.get("logical_date") or "",
+        debug=parse_debug_flag(execution_input.get("debug")),
         **argv_without_task_additional_parameters,
     )
     if spark_processing_wrapper.is_sql_job:

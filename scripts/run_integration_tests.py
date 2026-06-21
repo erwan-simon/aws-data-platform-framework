@@ -6,7 +6,9 @@ import boto3
 
 def main(state_machine_arn: str):
     sfn_client = boto3.client("stepfunctions")
-    input_string = json.dumps({"hello": "world!", "logical_date": "2020-01-01"})
+    input_string = json.dumps(
+        {"hello": "world!", "logical_date": "2020-01-01", "debug": True}
+    )
     sfn_execution_arn = sfn_client.start_execution(
         stateMachineArn=state_machine_arn, input=input_string
     )["executionArn"]

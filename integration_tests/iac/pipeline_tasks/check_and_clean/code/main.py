@@ -1,4 +1,6 @@
 # Part of the platform's integration-test fixtures. Useful as a working multi-table example; safe to delete in a real domain.
+import logging
+
 import awswrangler as wr
 from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
 from datalake_sdk.delete_table import delete_table
@@ -95,6 +97,10 @@ def main(job: BaseProcessingWrapper):
     # Exercises the logical_date override piped through the SFN execution input.
     assert job.logical_date == "2020-01-01", (
         f"Expected logical_date '2020-01-01', got '{job.logical_date}'"
+    )
+    # Exercises the debug override piped through the SFN execution input.
+    assert job.logger.level == logging.DEBUG, (
+        f"Expected logger level DEBUG ({logging.DEBUG}), got {job.logger.level}"
     )
     check_table_metadata(job, short_database_name, "test_native")
     check_table_metadata(job, short_database_name, "test_spark")

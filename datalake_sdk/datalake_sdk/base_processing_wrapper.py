@@ -14,6 +14,32 @@ from datalake_sdk.schema_loader import build_pandera_schema
 from datalake_sdk.tqdm_logging_handler import TqdmLoggingHandler
 
 
+def parse_debug_flag(value: Any) -> bool:
+    """Parse the ``debug`` flag coming from the Step Functions execution input.
+
+    Accepts JSON booleans and the string forms users routinely type by mistake
+    in the SFN console (``"true"``, ``"false"``, ``"1"``, ``"0"``). Raises on
+    anything else so the task fails fast at startup rather than silently
+    enabling or disabling DEBUG — Python's default ``bool("false") is True``
+    is exactly the footgun we want to avoid.
+    """
+    if value is None or value is False:
+        return False
+    if value is True:
+        return True
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in ("true", "1"):
+            return True
+        if normalized in ("false", "0", ""):
+            return False
+    raise ValueError(
+        f"Invalid value for 'debug' in step function execution input: "
+        f"{value!r}. Expected JSON boolean (true/false) or string "
+        "('true'/'false'/'1'/'0')."
+    )
+
+
 @dataclass
 class BaseProcessingWrapper:
     project_name: str = os.environ["PROJECT_NAME"]
@@ -33,14 +59,16 @@ class BaseProcessingWrapper:
     step_function_execution_arn: Union[str, None] = None
     logger: logging.Logger = logging.getLogger()
     logical_date: str = ""
+    debug: bool = False
 
     def __post_init__(self):
+        log_level = logging.DEBUG if self.debug else logging.INFO
         logging.basicConfig(
-            level=logging.INFO,
+            level=log_level,
             format="%(asctime)s [%(levelname)s] %(message)s",
             force=True,
         )
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(log_level)
         # https://stackoverflow.com/a/38739634
         self.logger.addHandler(TqdmLoggingHandler())
         self.long_database_prefix = (
@@ -96,6 +124,7 @@ class BaseProcessingWrapper:
         }
 
         print("Logical date: " + str(self.logical_date))
+        print("Debug logging: " + str(self.debug))
         print("Is sql job: " + str(self.is_sql_job))
         print("Input tables: " + str(self.input_tables))
         print("Output tables: " + json.dumps(self.output_tables, indent=4))

@@ -211,6 +211,29 @@ The SDK validates the string against `%Y-%m-%d` and fails the task fast on a mal
 value. Omitting the key keeps the default behaviour — non-breaking for existing schedules
 and EventBridge rules.
 
+## Enabling debug logging
+
+By default the SDK configures task loggers at `INFO`. To switch a specific Step Functions
+execution to `DEBUG` — useful when investigating a production incident without redeploying
+or bumping the SDK — pass `{"debug": true}` in the execution input when starting the state
+machine. The framework wires this value through to every task (ECS native + EMR Spark)
+automatically; no change to your `main.py` or to the orchestration template is required.
+
+```bash
+aws stepfunctions start-execution \
+  --state-machine-arn arn:aws:states:eu-west-1:...:stateMachine:my_pipeline \
+  --input '{"debug": true}'
+```
+
+The flag raises the level of both the root logger (so boto3, awswrangler and other
+underlying libraries also become verbose) and the SDK's own logger. Omitting the key keeps
+the default `INFO` behaviour — non-breaking for existing schedules and EventBridge rules.
+
+Accepted values: JSON booleans (`true`/`false`) and their common string equivalents
+(`"true"`, `"false"`, `"1"`, `"0"`, case-insensitive). Anything else fails the task fast
+at startup — Python's default `bool("false") is True` would silently enable DEBUG, so the
+SDK rejects unrecognised values rather than guessing.
+
 ## Failure notifications
 
 Set `failure_notification_receivers = ["a@example.com", "b@example.com"]` on the pipeline. The

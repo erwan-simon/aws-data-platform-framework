@@ -5,7 +5,10 @@ from dataclasses import dataclass
 import uuid
 import pandas as pd
 import awswrangler as wr
-from datalake_sdk.base_processing_wrapper import BaseProcessingWrapper
+from datalake_sdk.base_processing_wrapper import (
+    BaseProcessingWrapper,
+    parse_debug_flag,
+)
 
 
 @dataclass
@@ -202,6 +205,7 @@ def job_entrypoint_function(execute=True) -> (NativePythonProcessingWrapper, obj
         step_function_task_token=os.getenv("step_function_task_token"),
         step_function_execution_arn=os.getenv("step_function_execution_arn"),
         logical_date=execution_input.get("logical_date") or "",
+        debug=parse_debug_flag(execution_input.get("debug")),
     )
     if native_processing_wrapper.is_sql_job:
         processing_function = sql_entrypoint_processing_function
