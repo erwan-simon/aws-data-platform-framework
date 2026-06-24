@@ -52,6 +52,9 @@ module "pipeline" {
         "datalake_test.test_native_sql_entrypoint" : {
           "ingestion_mode" : "overwrite"
         }
+      },
+      "additional_parameters" : {
+        "tenant_label" : "integration-test" # exercises the additional_parameters → main.sql templating
       }
     },
     "test_spark_write" : {
@@ -93,6 +96,9 @@ module "pipeline" {
         "datalake_test.test_spark_sql_entrypoint" : {
           "ingestion_mode" : "overwrite"
         }
+      },
+      "additional_parameters" : {
+        "tenant_label" : "integration-test" # exercises the additional_parameters → main.sql templating
       }
     },
     "check_and_clean" : {

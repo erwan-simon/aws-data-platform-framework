@@ -72,7 +72,7 @@ variables into the container:
 | `INPUT_TABLES`                     | Terraform       | JSON list of `"db.table"` strings, mirrors `tasks_configuration`.    |
 | `OUTPUT_TABLES`                    | Terraform       | JSON dict of `"db.table"` → `{ ingestion_mode, upsert_keys, ... }`.  |
 | `IS_SQL_JOB`                       | Terraform       | `"true"` if `code/main.sql` exists, else `"false"`.                  |
-| `TASK_ADDITIONAL_PARAMETERS_<KEY>` | Terraform / SFN | One env var per entry of `additional_parameters` (uppercased key).   |
+| `TASK_ADDITIONAL_PARAMETERS_<key>` | Terraform / SFN | One env var per entry of `additional_parameters` (key casing preserved from the Terraform map). |
 | `step_function_task_token`         | Step Functions  | Callback token; the SDK uses it to send success / failure to SFN.    |
 | `step_function_execution_arn`      | Step Functions  | Identifies the running execution.                                    |
 | `step_function_execution_input`    | Step Functions  | JSON-encoded execution input; the SDK parses optional override keys from it (e.g. `logical_date` — see "Overriding the logical date" below). |
@@ -118,14 +118,22 @@ A SQL task is just `code/main.sql`. Constraints:
 
 - Exactly **one** output table allowed. The SDK runs the query and writes the result with the
   declared `ingestion_mode`.
-- Use `{database_prefix}` to make the query stage-aware. The SDK substitutes it at runtime
-  with `{stage_name}_` in non-prod stages and an empty string in `prod`.
+- The SDK renders `main.sql` through Python `str.format()` before executing it. Three sources of
+  placeholders are merged into the context, in this order of precedence:
+  1. `{database_prefix}` — stage-aware DB prefix (`{stage_name}_` in non-prod, empty in `prod`).
+  2. `{logical_date}` — execution logical date (see "Overriding the logical date" below).
+  3. Every key declared in `additional_parameters` (including the dynamic `key.$ = "$.foo"` form
+     resolved from the trigger payload, see "Triggers" below) is available as `{key}`.
+
+  Built-in keys (`database_prefix`, `logical_date`) are reserved: declaring an
+  `additional_parameters` key with the same name fails the task fast at startup.
 
 ```sql
 -- my_task/code/main.sql
 SELECT id, name, total
 FROM {database_prefix}sales.orders
-WHERE order_date = current_date - interval '1' day;
+WHERE order_date = DATE '{logical_date}'
+  AND tenant = '{tenant_id}';   -- {tenant_id} comes from additional_parameters
 ```
 
 ## ECS vs EMR Serverless
@@ -191,6 +199,10 @@ additional_parameters = {
   "static_key"  = "static_value"
 }
 ```
+
+Inside Python tasks, read these values from `job.task_additional_parameters["hello"]`. Inside
+SQL tasks, they are also available as `{hello}` / `{static_key}` placeholders rendered into
+`main.sql` at startup — see [SQL tasks](#sql-tasks).
 
 ## Overriding the logical date
 

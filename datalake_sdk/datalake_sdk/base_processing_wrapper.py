@@ -133,6 +133,23 @@ class BaseProcessingWrapper:
             + json.dumps(self.task_additional_parameters, indent=4)
         )
 
+    SQL_TEMPLATE_RESERVED_KEYS = ("database_prefix", "logical_date")
+
+    def build_sql_template_context(self, database_prefix: str) -> Dict[str, str]:
+        collisions = sorted(
+            set(self.task_additional_parameters) & set(self.SQL_TEMPLATE_RESERVED_KEYS)
+        )
+        if collisions:
+            raise ValueError(
+                "additional_parameters keys collide with reserved SQL template "
+                f"keys: {collisions}. Rename them."
+            )
+        return {
+            "database_prefix": database_prefix,
+            "logical_date": self.logical_date,
+            **self.task_additional_parameters,
+        }
+
     class IngestionFailed(Exception):
         pass
 

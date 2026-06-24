@@ -183,8 +183,7 @@ def sql_entrypoint_processing_function(self):
         )
     with open("task_code/main.sql") as sql_request_file:
         sql_request_string = sql_request_file.read().format(
-            database_prefix=self.long_database_prefix,
-            logical_date=self.logical_date,
+            **self.build_sql_template_context(self.long_database_prefix)
         )
     return {
         list(self.output_tables.keys())[0]: self.ProcessingResponse(
