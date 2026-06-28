@@ -21,6 +21,31 @@ package_datalake_sdk=${18}
 # if the terraform assumes a role, it should be here because this script execution does not benefit from terraform assume role
 role_to_assume_arn=${19}
 
+# Assume the build role up front so the idempotency check below can read ECR.
+# Same `aws sts assume-role` semantics as the original block further down (kept
+# in scope for the build path); promoted here so we can call `aws ecr` before
+# allocating any staging/builder resources.
+if [ ! -z "$role_to_assume_arn" ]
+then
+    export OLD_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    export OLD_SECRET_ACCESS_ID=$AWS_SECRET_ACCESS_KEY
+    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" $(aws sts assume-role --role-arn ${role_to_assume_arn} --role-session-name GitlabRunnerSession --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" --output text))
+fi
+
+# Idempotent skip — terraform_data forces a replace whenever `image_tag` changes,
+# but image_tag is a deterministic hash of inputs, so a rollback can recompute a
+# tag that's already in ECR (legitimately built by a previous apply on the same
+# branch). Detect that case before doing any work: if the tag is already in ECR,
+# the downstream consumers (ECS/EMR) will read the existing manifest unchanged.
+# Placed before mktemp/trap so we don't allocate staging resources we won't use.
+if aws ecr describe-images \
+        --repository-name "${ecr_name}" \
+        --image-ids imageTag="${target_image_tag}" \
+        --region "${aws_region_name}" >/dev/null 2>&1; then
+    echo "Image ${ecr_name}:${target_image_tag} already present in ECR, skipping build and push"
+    exit 0
+fi
+
 unique_id="job_${$}_${RANDOM}"
 builder_name="datalake_builder_${unique_id}"
 
@@ -54,13 +79,6 @@ then
 fi
 
 cd "$staging_dir"
-
-if [ ! -z "$role_to_assume_arn" ]
-then
-    export OLD_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-    export OLD_SECRET_ACCESS_ID=$AWS_SECRET_ACCESS_KEY
-    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" $(aws sts assume-role --role-arn ${role_to_assume_arn} --role-session-name GitlabRunnerSession --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" --output text))
-fi
 
 if ! aws ecr get-login-password --region $aws_region_name | docker login -u AWS ${aws_account_id}.dkr.ecr.${aws_region_name}.amazonaws.com --password-stdin 2> "${staging_dir}/login_error_message.txt";
 then
