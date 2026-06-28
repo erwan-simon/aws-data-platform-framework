@@ -1,21 +1,40 @@
 import os
 import logging
 import json
+from typing import Optional
 import boto3
 from datalake_sdk.slack import send_slack_message
 from datalake_sdk.datalfred_agent.main import main as datalfred_main
 
 
+# History event types that carry a `cause` field — set by SFN when the
+# integration itself errors out, or by the SDK via `send_task_failure`.
+_FAILURE_EVENT_TYPE_TO_DETAILS_KEY = {
+    "TaskFailed": "taskFailedEventDetails",
+    "TaskTimedOut": "taskTimedOutEventDetails",
+    "TaskSubmitFailed": "taskSubmitFailedEventDetails",
+}
+
+
 def handle_ecs(
     logger: logging.Logger, environment_name: str, event: dict
-) -> (str, str):
+) -> (str, str, Optional[str]):
+    environment_variables = event["detail"]["overrides"]["containerOverrides"][0][
+        "environment"
+    ]
     step_function_task_token = [
         environment_variable_dict["value"]
-        for environment_variable_dict in event["detail"]["overrides"][
-            "containerOverrides"
-        ][0]["environment"]
+        for environment_variable_dict in environment_variables
         if environment_variable_dict["name"] == "step_function_task_token"
     ][0]
+    step_function_execution_arn = next(
+        (
+            environment_variable_dict["value"]
+            for environment_variable_dict in environment_variables
+            if environment_variable_dict["name"] == "step_function_execution_arn"
+        ),
+        None,
+    )
     try:
         error_message = event["detail"]["lastStatus"]
         task_name = (
@@ -35,7 +54,7 @@ def handle_ecs(
                 # if it could not pull the docker image), there is no
                 # container exit code
                 logger.info("ECS task did not fail.")
-                return step_function_task_token, None
+                return step_function_task_token, None, None
             task_error_message = event["detail"]["containers"][0].get(
                 "reason",
                 event["detail"]["stoppedReason"]
@@ -53,12 +72,12 @@ def handle_ecs(
     except Exception as error:
         error_message = f"Platform error: {error}"
         logger.error(error_message)
-    return step_function_task_token, error_message
+    return step_function_task_token, error_message, step_function_execution_arn
 
 
 def handle_emr_serverless(
     _: logging.Logger, environment_name: str, event: dict
-) -> (str, str):
+) -> (str, str, Optional[str]):
     emr_serverless_client = boto3.client("emr-serverless")
     job_run_config = emr_serverless_client.get_job_run(
         applicationId=event["detail"]["applicationId"],
@@ -72,6 +91,9 @@ def handle_emr_serverless(
         job_run_config["jobDriver"]["sparkSubmit"]["entryPointArguments"][0]
     )
     step_function_task_token = entrypoint_arguments["step_function_task_token"]
+    step_function_execution_arn = entrypoint_arguments.get(
+        "step_function_execution_arn"
+    )
     task_error_message = job_run_config.get(
         "stateDetails", "No state details found in EMR job run"
     )
@@ -79,7 +101,7 @@ def handle_emr_serverless(
         f"EMR task {task_name} ended in {job_run_config['state']} state: "
         + task_error_message
     )
-    return step_function_task_token, error
+    return step_function_task_token, error, step_function_execution_arn
 
 
 TRIAGE_DICT = {"aws.ecs": handle_ecs, "aws.emr-serverless": handle_emr_serverless}
@@ -107,6 +129,44 @@ def investigate_error_with_datalfred(
     )
 
 
+def lookup_cause_in_execution_history(
+    logger: logging.Logger,
+    boto_session,
+    execution_arn: str,
+) -> Optional[str]:
+    """Return the rich `cause` already posted to SFN for this execution, if any.
+
+    The SDK's processing wrappers catch task-level exceptions and call
+    `send_task_failure(error=..., cause=str(error))` before exiting — that
+    payload is what shows up in the SFN console (e.g.
+    'InvalidArgumentValue: Schema change detected: …'). The failsafe Lambda's
+    own EventBridge-derived message has none of that detail. When the rich
+    cause is available, it makes the Slack notif actionable.
+
+    Best-effort: any error returns None so the caller falls back to the
+    EventBridge-derived message. The failsafe Lambda's contract is to always
+    send something — enrichment is a bonus, never a precondition.
+    """
+    try:
+        sfn_client = boto_session.client("stepfunctions")
+        response = sfn_client.get_execution_history(
+            executionArn=execution_arn,
+            reverseOrder=True,
+            maxResults=100,
+        )
+    except Exception as error:
+        logger.info(f"SFN history lookup failed, falling back: {error}")
+        return None
+    for history_event in response.get("events", []):
+        details_key = _FAILURE_EVENT_TYPE_TO_DETAILS_KEY.get(history_event["type"])
+        if not details_key:
+            continue
+        cause = (history_event.get(details_key) or {}).get("cause")
+        if cause:
+            return cause
+    return None
+
+
 def main(event: dict, _: dict):
     project_name = os.environ["PROJECT_NAME"]
     domain_name = os.environ["DOMAIN_NAME"]
@@ -116,8 +176,8 @@ def main(event: dict, _: dict):
     logging.basicConfig(level=logging.INFO, format="%(message)s", force=True)
     logger.info(event)
     try:
-        step_function_task_token, error_message = TRIAGE_DICT[event["source"]](
-            logger, environment_name, event
+        step_function_task_token, error_message, step_function_execution_arn = (
+            TRIAGE_DICT[event["source"]](logger, environment_name, event)
         )
     except KeyError as error:
         raise ValueError(f"Unknown event source: {event['source']}") from error
@@ -132,7 +192,25 @@ def main(event: dict, _: dict):
         return
     logger.info(f"Aborting step function execution: {error_message}")
     sfn_client = boto3.client("stepfunctions")
-    slack_message = f"Pipeline failure on {environment_name}:\n{error_message}"
+    slack_error_message = error_message
+    if step_function_execution_arn:
+        rich_cause = lookup_cause_in_execution_history(
+            logger, boto3.session.Session(), step_function_execution_arn
+        )
+        if rich_cause:
+            logger.info("SFN history enrichment hit — using rich cause for Slack")
+            slack_error_message = rich_cause
+        else:
+            logger.info(
+                "SFN history enrichment miss — falling back to EventBridge-derived "
+                "message for Slack"
+            )
+    else:
+        logger.info(
+            "No step_function_execution_arn on the failure event — skipping SFN "
+            "history enrichment"
+        )
+    slack_message = f"Pipeline failure on {environment_name}:\n{slack_error_message}"
     if os.environ.get("LLM_ENABLED", "true").lower() == "true":
         try:
             analysis = investigate_error_with_datalfred(
