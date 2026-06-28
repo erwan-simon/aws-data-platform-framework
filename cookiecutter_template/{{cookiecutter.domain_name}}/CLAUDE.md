@@ -31,6 +31,16 @@ After `terraform init`, the framework repo is cached locally — that's the cano
 
 Fallback (always latest `prod`): https://github.com/erwan-simon/aws-data-platform-framework
 
+## SDK CLI (ad-hoc ops)
+
+The SDK ships a `datalake_sdk` CLI with sub-commands `ingest`, `delete_table`, `migrate_data`, `run_task`, `update_foreign_linked_databases` (+ `datalfred` with the `[agent]` extra). Install it into the active Python env via:
+
+```bash
+mise run sdk-install
+```
+
+This runs `terraform init` (so `.terraform/modules/domain/datalake_sdk/` is on disk) then `pip install` from that local source — no CodeArtifact auth needed. Invocation pattern: `datalake_sdk -p <project> -d <domain> -s <stage> <command> ...`. Full reference: `iac/.terraform/modules/domain/datalake_sdk/README.md`.
+
 ## Conventions
 - Tasks' `main.py` exports a top-level `def main(job)` returning a dict; NOT a subclass, no `if __name__ == "__main__"`.
 - All managed tables are Iceberg. Ingestion modes: `overwrite`, `append`, `upsert`.

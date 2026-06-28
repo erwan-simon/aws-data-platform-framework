@@ -40,6 +40,14 @@ run = [
   "terraform apply --auto-approve -parallelism={% raw %}{{arg(name='parallelism')}}{% endraw %}",
 ]
 
+[tasks.sdk-install]
+description = "terraform init (to fetch the framework module locally) + pip install the datalake_sdk CLI from the cached source into the active Python env."
+dir = "iac"
+run = [
+  "terraform init{% if cookiecutter.terraform_backend_bucket_name %} -backend-config=backend.hcl{% endif %}",
+  "pip install ./.terraform/modules/domain/datalake_sdk",
+]
+
 [tasks.run-pipeline]
 description = "Trigger a pipeline execution and wait for it to finish. Usage: mise run run-pipeline <stage> <pipeline>"
 run = """
