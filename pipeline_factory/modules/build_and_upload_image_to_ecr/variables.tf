@@ -58,3 +58,9 @@ variable "package_datalake_sdk" {
   description = "Should the build script package the datalake sdk or not"
   default     = false
 }
+
+variable "install_datalake_sdk_agent_extras" {
+  type        = bool
+  description = "Whether to install the datalake_sdk `[agent]` extras in the target image. Set explicitly only on callers whose Dockerfile declares a matching `ARG INSTALL_DATALAKE_SDK_AGENT_EXTRAS` and branches on it (currently: the failsafe_shutdown Lambda). Leave null on every other caller — the value is then omitted from `total_rebuild_trigger` so their `image_tag` isn't invalidated when this flag flips on an unrelated caller."
+  default     = null
+}

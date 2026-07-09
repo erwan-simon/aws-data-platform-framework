@@ -12,6 +12,11 @@ FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11 AS builder
 RUN yum install -y gcc gcc-c++ make rust cargo && yum clean all
 RUN pip3 install --no-cache-dir poetry==2.1.4
 ARG RELATIVE_CODE_PATH
+# When "false", the `[agent]` extras (strands / mcp / pillow …) are skipped.
+# Runtime code lazy-imports datalfred so the missing modules are inert on
+# `enable_llm = false` domains — the extras are pure LLM-path deps, never
+# reached by the failsafe Lambda's normal ECS/EMR shutdown path.
+ARG INSTALL_DATALAKE_SDK_AGENT_EXTRAS=true
 WORKDIR /build
 COPY ${RELATIVE_CODE_PATH}/datalake_sdk/. .
 # Build a wheel and install it (not `poetry install`, which would be editable and
@@ -19,7 +24,12 @@ COPY ${RELATIVE_CODE_PATH}/datalake_sdk/. .
 # so `import datalake_sdk` would fail at Lambda init.
 # hadolint ignore=DL3013
 RUN poetry build -f wheel \
- && pip install --no-cache-dir "$(ls dist/datalake_sdk-*.whl)[agent]"
+ && wheel_path="$(ls dist/datalake_sdk-*.whl)" \
+ && if [ "${INSTALL_DATALAKE_SDK_AGENT_EXTRAS}" = "true" ]; then \
+        pip install --no-cache-dir "${wheel_path}[agent]"; \
+    else \
+        pip install --no-cache-dir "${wheel_path}"; \
+    fi
 COPY ${RELATIVE_CODE_PATH}/requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt --no-cache-dir
 

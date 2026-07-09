@@ -4,7 +4,6 @@ import json
 from typing import Optional
 import boto3
 from datalake_sdk.slack import send_slack_message
-from datalake_sdk.datalfred_agent.main import main as datalfred_main
 
 
 # History event types that carry a `cause` field — set by SFN when the
@@ -110,6 +109,13 @@ TRIAGE_DICT = {"aws.ecs": handle_ecs, "aws.emr-serverless": handle_emr_serverles
 def investigate_error_with_datalfred(
     logger, boto_session, project_name: str, domain_name: str, stage_name: str
 ) -> str:
+    # Lazy import: the `datalake_sdk[agent]` extras (strands / mcp / pillow …)
+    # are skipped from the Lambda image when `enable_llm = false` in the
+    # domain_factory. Keeping the import at module scope would crash cold-start
+    # on those domains even though the runtime code paths never reach here
+    # (the LLM_ENABLED gate below wraps this call).
+    from datalake_sdk.datalfred_agent.main import main as datalfred_main
+
     model_size = os.environ["FAILURE_INVESTIGATION_MODEL_SIZE"]
     print_sub_agent_debug = True
     return datalfred_main(
@@ -211,7 +217,7 @@ def main(event: dict, _: dict):
             "history enrichment"
         )
     slack_message = f"Pipeline failure on {environment_name}:\n{slack_error_message}"
-    if os.environ.get("LLM_ENABLED", "true").lower() == "true":
+    if os.environ.get("LLM_ENABLED", "false").lower() == "true":
         try:
             analysis = investigate_error_with_datalfred(
                 logger, boto3.session.Session(), project_name, domain_name, stage_name

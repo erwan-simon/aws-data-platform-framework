@@ -38,10 +38,11 @@ module "build_failsafe_shutdown_lambda_docker_image" {
     additional_rebuild_trigger : {},
     additional_permissions : null
   }
-  package_datalake_sdk = true
-  role_to_assume_arn   = ""
-  resources_suffix     = "failsafe_shutdown"
-  environment_name     = local.environment_name
+  package_datalake_sdk              = true
+  install_datalake_sdk_agent_extras = var.enable_llm
+  role_to_assume_arn                = ""
+  resources_suffix                  = "failsafe_shutdown"
+  environment_name                  = local.environment_name
   rebuild_trigger = {
     "datalake_sdk_version" : local.datalake_sdk_version
   }

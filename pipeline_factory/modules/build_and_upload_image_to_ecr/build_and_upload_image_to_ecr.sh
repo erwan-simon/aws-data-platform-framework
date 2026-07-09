@@ -20,6 +20,7 @@ codeartifact_repository_endpoint=${17}
 package_datalake_sdk=${18}
 # if the terraform assumes a role, it should be here because this script execution does not benefit from terraform assume role
 role_to_assume_arn=${19}
+install_datalake_sdk_agent_extras=${20}
 
 # Assume the build role up front so the idempotency check below can read ECR.
 # Same `aws sts assume-role` semantics as the original block further down (kept
@@ -134,6 +135,7 @@ if ! DOCKER_BUILDKIT=1 \
   --build-arg IS_SQL_JOB=${is_sql_job} \
   --build-arg AWS_REGION=${aws_region_name} \
   --build-arg CODEARTIFACT_REPOSITORY_ENDPOINT=${codeartifact_repository_endpoint} \
+  --build-arg INSTALL_DATALAKE_SDK_AGENT_EXTRAS=${install_datalake_sdk_agent_extras} \
   --secret id=CODEARTIFACT_REPOSITORY_TOKEN \
   --cache-from type=registry,ref=${cache_image_ref} \
   --cache-to type=registry,ref=${cache_image_ref},mode=max,image-manifest=true,oci-mediatypes=true \
