@@ -49,10 +49,17 @@ arg "parallelism" default="5" help="terraform apply -parallelism value"
 '''
 run = """
 set -eu
+repo_root="$(pwd)"
 bash scripts/generate_scaffold.sh
 cd _integration_test/datalake_scaffold
 mise trust
 mise install
+# Reset ECR + terraform state before deploy: forces a cold rebuild every run
+# and side-steps the sticky `ecr_presence = MISSING` sentinel in state that
+# would otherwise skip the rebuild on repeat runs. See the script's header.
+(cd iac && terraform init -backend-config=backend.hcl)
+(cd iac && (terraform workspace select "{{arg(name='stage')}}" 2>/dev/null || terraform workspace new "{{arg(name='stage')}}"))
+bash "$repo_root/scripts/purge_ecr_images.sh" poc datalake_scaffold "{{arg(name='stage')}}" iac
 mise run deploy "{{arg(name='stage')}}" "{{arg(name='parallelism')}}"
 mise run run-pipeline "{{arg(name='stage')}}" main
 """

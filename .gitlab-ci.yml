@@ -143,6 +143,16 @@ integration_tests_full_fixture:
 
 integration_tests_scaffold:
   extends: .integration_tests_base
+  # The scaffold mirrors the fresh-downstream-user path (new project, first
+  # `terraform apply`). Purging the stage's ECR before every apply forces the
+  # docker builds to re-resolve every layer, catching drift in transitives,
+  # base-image content-hash, and mid-RUN external fetches that a warm registry
+  # cache would silently mask. The framework's own `data.external.ecr_image_presence`
+  # then flips `triggers_replace` to MISSING and terraform re-runs the build.
+  #
+  # The purge is prefix-scoped: branch slugs that share a prefix with another
+  # live stage will purge each other's scaffold images. See
+  # docs/troubleshooting/scaffold-ecr-prefix-collision.md.
   script:
     - pip install cookiecutter
     - mise run integration-scaffold "$STAGE_NAME"
