@@ -1,15 +1,17 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder stage ----
-# `--extras agent` pulls strands-agents → libcst, whose linux wheels are
-# manylinux_2_28-only (glibc 2.28+) — but the Lambda Python 3.11 base is
-# Amazon Linux 2 (glibc 2.26), so libcst falls back to a Rust source build.
-# We keep a builder stage with the toolchain and ship only the resolved
-# site-packages to the runtime.
-FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11 AS builder
-# Toolchain packages on AL2 — pinning gcc/cargo/rust across base image bumps is brittle, kept unversioned.
-# hadolint ignore=DL3033
-RUN yum install -y gcc gcc-c++ make rust cargo && yum clean all
+# The Lambda Python 3.12 base is Amazon Linux 2023 (glibc 2.34), so the
+# `manylinux_2_28`-only wheels shipped by recent versions of `[agent]`
+# transitives (libcst, pillow via strands-agents-tools → mcp, …) install
+# cleanly — no fallback to source build. Toolchain packages are still yum-
+# installed defensively in case a future transitive lacks a wheel for this
+# platform tag; can be dropped once we're confident the whole `[agent]`
+# closure ships wheels for `manylinux_2_28`.
+FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.12 AS builder
+# Toolchain packages on AL2023 — pinning gcc/cargo/rust across base image bumps is brittle, kept unversioned.
+# hadolint ignore=DL3041
+RUN dnf install -y gcc gcc-c++ make rust cargo && dnf clean all
 RUN pip3 install --no-cache-dir poetry==2.1.4
 ARG RELATIVE_CODE_PATH
 # When "false", the `[agent]` extras (strands / mcp / pillow …) are skipped.
@@ -35,8 +37,8 @@ RUN pip install -r /tmp/requirements.txt --no-cache-dir
 
 # ---- Runtime stage ----
 # Same base image as builder so compiled extensions stay ABI-compatible.
-FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11
-COPY --from=builder /var/lang/lib/python3.11/site-packages /var/lang/lib/python3.11/site-packages
+FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.12
+COPY --from=builder /var/lang/lib/python3.12/site-packages /var/lang/lib/python3.12/site-packages
 COPY --from=builder /var/lang/bin /var/lang/bin
 WORKDIR $LAMBDA_TASK_ROOT/
 CMD [ "task_code.main.main" ]
