@@ -1,7 +1,7 @@
 # AWS Data Platform Framework
 
 ![License](https://img.shields.io/badge/license-CC--BY--NC--4.0-blue)
-![Python](https://img.shields.io/badge/python-3.11-blue)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
 ![Terraform AWS provider](https://img.shields.io/badge/terraform%20aws-%E2%89%A55.60-blueviolet)
 
 A unified framework to industrialize data ingestion, transformation, and pipeline execution on
