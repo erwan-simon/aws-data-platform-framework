@@ -24,6 +24,40 @@ stages:
   - mirror_to_github
 
 #############################################################
+######################## FORMAT #############################
+#############################################################
+# Fast pre-flight: reject any push where datalake_sdk/poetry.lock is out of sync
+# with pyproject.toml. The failure mode caught here is silent-in-CI: the SDK
+# wheel path (failsafe_shutdown Dockerfile) rebuilds the wheel and never reads
+# the lock, but the sandbox Dockerfiles (ECS + EMR) `poetry install` against
+# the lock and refuse a stale one — pipeline fails deep in `integration_tests`
+# after ~10min instead of at the format stage in ~10s.
+poetry_lock_check:
+  stage: format
+  image: ubuntu:24.04
+  variables:
+    # See trivy_iac below for the same rationale — keep mise from auto-installing
+    # every tool in mise.toml on this slim runner.
+    MISE_AUTO_INSTALL: "false"
+  before_script:
+    # python3 is bootstrap: mise's poetry install script (install_poetry.sh from
+    # get.poetry.eu.org) shells out to `python3`, but mise's `python` shim isn't
+    # exposed under that name, and pre-installing `mise install python` first
+    # doesn't help. Simplest: hand poetry a real python3 from the OS.
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git python3
+    - curl https://mise.run | sh
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise trust
+    - mise install poetry
+  script:
+    - export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+    - mise run poetry-lock-check
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+#############################################################
 ######################## SECURITY ###########################
 #############################################################
 # Custom security scan: trivy IaC misconfig scan on Terraform files.
@@ -93,6 +127,7 @@ trivy_iac:
     - hadolint
     - secret_scan
     - trivy_iac
+    - poetry_lock_check
   rules:
     - if: $CI_COMMIT_TAG
       when: never
@@ -125,5 +160,6 @@ failsafe_lambda_smoke_test:
     - hadolint
     - secret_scan
     - trivy_iac
+    - poetry_lock_check
   script:
     - bash scripts/failsafe_lambda_smoke_test.sh "$PROJECT_NAME" datalake_test "$STAGE_NAME"

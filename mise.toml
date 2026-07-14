@@ -85,6 +85,10 @@ run = 'hadolint $(find . -name "Dockerfile")'
 description = "gitleaks secret scan (CI)"
 run = "gitleaks detect --source . --verbose"
 
+[tasks."poetry-lock-check"]
+description = "Verify datalake_sdk/poetry.lock is in sync with pyproject.toml (fast, no dep resolution — used by CI + pre-commit)"
+run = "poetry check --lock --directory datalake_sdk"
+
 [tasks.trivy]
 description = "trivy IaC misconfig scan. Default: show all severities, exit 0 (informative). --strict: fail on HIGH/CRITICAL only (used by CI + pre-commit)."
 usage = 'flag "--strict" help="Fail (exit 1) on HIGH/CRITICAL findings, hide LOW/MEDIUM"'

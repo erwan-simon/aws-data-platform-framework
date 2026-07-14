@@ -36,3 +36,10 @@ repos:
         language: system
         pass_filenames: false
         files: \.tf$
+
+      - id: poetry-lock-check
+        name: poetry.lock consistency (datalake_sdk)
+        entry: mise run poetry-lock-check
+        language: system
+        pass_filenames: false
+        files: ^datalake_sdk/(pyproject\.toml|poetry\.lock)$

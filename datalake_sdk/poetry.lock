@@ -3088,9 +3088,9 @@ multidict = ">=4.0"
 propcache = ">=0.2.1"
 
 [extras]
-agent = ["strands-agents", "strands-agents-builder", "strands-agents-tools"]
+agent = ["mcp", "strands-agents", "strands-agents-builder", "strands-agents-tools"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "60e349855fa9f5df1028a8e07557cb41926c9fe6c4638fbab1c37000a2927f3d"
+content-hash = "785cad85c654196977ceacde594e3d3d02f5d58b7afbeaef3456d7b2292baf82"
